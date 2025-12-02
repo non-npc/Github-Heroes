@@ -4,6 +4,8 @@ An incremental RPG "Github Repo" game that turns GitHub repositories into dungeo
 
 ![Github Heroes Screenshot](screenshot.png)
 
+- More content and graphics are planned
+
 ## Description
 
 Github Heroes is a single-player incremental RPG/exploration game built with Python and PyQt6. It parses public GitHub repositories and procedurally generates:
