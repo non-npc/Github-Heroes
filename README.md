@@ -86,6 +86,16 @@ python main.py
 - **non-npc**: Initial concept and push
 - **imc-avishayr**: App icons (ICO, PNG, SVG formats)
 
+## Contributing
+
+We welcome contributions! If you'd like to contribute to Github Heroes, please feel free to:
+
+- Open an issue to report bugs or suggest new features
+- Submit a Pull Request with your improvements
+- Share feedback and ideas
+
+When submitting a PR, please make sure your code follows the existing style and includes appropriate comments. We appreciate all contributions, big or small!
+
 ## NOTES
 
 - updates may break existing save games and may require starting fresh
