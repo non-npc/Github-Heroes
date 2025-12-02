@@ -33,11 +33,20 @@ def compute_readme_features(text: str) -> ReadmeFeatures:
     features.word_frequencies = dict(Counter(words))
     
     # Keyword hits
+    # Only match keywords with 3+ characters to avoid false positives (e.g., "ai" matching in "main", "said")
     text_lower = text.lower()
     for group_name, keywords in KEYWORD_GROUPS.items():
         hits = 0
         for keyword in keywords:
-            hits += text_lower.count(keyword.lower())
+            keyword_lower = keyword.lower()
+            # Skip keywords shorter than 3 characters
+            if len(keyword_lower) < 3:
+                continue
+            # Use word boundaries to match whole words only
+            # This prevents "ai" from matching in "main", "said", "again", etc.
+            pattern = r'\b' + re.escape(keyword_lower) + r'\b'
+            matches = re.findall(pattern, text_lower)
+            hits += len(matches)
         features.keyword_hits[group_name] = hits
     
     # Generate deterministic seed from README hash

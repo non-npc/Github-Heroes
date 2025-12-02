@@ -91,6 +91,7 @@ python main.py
 
 ## Version History
 
+- version 1.0.3: added prefix/suffix system to enemy generation
 - version 1.0.2: combat interface update, enemy graphics, inventory changes, profile changes
 - version 1.0.1: app icons
 - version 1.0.0: initial push

@@ -3,7 +3,7 @@ Procedural generation of game content from GitHub data.
 """
 import random
 import json
-from typing import Optional
+from typing import Optional, List
 from github.scraper import GitHubScraper
 from github.parsers import (
     parse_repo_metadata, parse_tree, parse_issues, parse_pulls, parse_commits
@@ -20,6 +20,7 @@ from data.repositories import (
 )
 from data.database import get_db
 from core.logging_utils import get_logger
+from core.config import ENEMY_PREFIXES, ENEMY_SUFFIXES
 
 logger = get_logger(__name__)
 
@@ -75,9 +76,88 @@ def generate_room_enemy(danger_level: int, world_id: int, base_enemy: Optional[E
     
     return enemy
 
+def _generate_enemy_name(keyword_hits: dict, seed: int, word_count: int) -> str:
+    """
+    Generate a unique enemy name using prefix/suffix system.
+    Uses keyword hits, seed, and word count to maximize variety.
+    
+    Returns a combination like "Neural Archon" or "Dark Web Crawler"
+    """
+    # Seed random for deterministic but varied selection
+    random.seed(seed)
+    
+    # Get all keywords with hits > 0, sorted by hit count
+    active_keywords = [(k, v) for k, v in keyword_hits.items() if v > 0]
+    active_keywords.sort(key=lambda x: x[1], reverse=True)
+    
+    # Determine prefix pool
+    prefix_pool = []
+    suffix_pool = []
+    
+    if not active_keywords:
+        # No keywords, use generic only
+        prefix_pool = ENEMY_PREFIXES["generic"]
+        suffix_pool = ENEMY_SUFFIXES["generic"]
+    else:
+        # Build weighted pools based on keyword hits
+        # Keywords with more hits have higher weight in selection
+        # Collect themed prefixes/suffixes based on keyword weights
+        themed_prefixes = []
+        themed_suffixes = []
+        
+        for keyword, hits in active_keywords:
+            if keyword in ENEMY_PREFIXES:
+                # Add themed prefixes multiple times based on hit count (weighted)
+                weight = max(1, hits * 2)  # At least 1, more hits = more weight
+                themed_prefixes.extend(ENEMY_PREFIXES[keyword] * weight)
+            if keyword in ENEMY_SUFFIXES:
+                # Add themed suffixes multiple times based on hit count (weighted)
+                weight = max(1, hits * 2)
+                themed_suffixes.extend(ENEMY_SUFFIXES[keyword] * weight)
+        
+        # Mix themed and generic (70% themed, 30% generic if we have themes)
+        if themed_prefixes:
+            # Use word_count to add variation to selection
+            variation_seed = (seed + word_count) % 1000
+            random.seed(variation_seed)
+            
+            # 70% chance to use themed, 30% generic
+            if random.random() < 0.7:
+                prefix_pool = themed_prefixes + ENEMY_PREFIXES["generic"][:len(themed_prefixes)//3]
+            else:
+                prefix_pool = ENEMY_PREFIXES["generic"] + themed_prefixes[:len(ENEMY_PREFIXES["generic"])//3]
+        else:
+            prefix_pool = ENEMY_PREFIXES["generic"]
+        
+        if themed_suffixes:
+            # Use different variation for suffix selection
+            variation_seed = (seed + word_count + 100) % 1000
+            random.seed(variation_seed)
+            
+            if random.random() < 0.7:
+                suffix_pool = themed_suffixes + ENEMY_SUFFIXES["generic"][:len(themed_suffixes)//3]
+            else:
+                suffix_pool = ENEMY_SUFFIXES["generic"] + themed_suffixes[:len(ENEMY_SUFFIXES["generic"])//3]
+        else:
+            suffix_pool = ENEMY_SUFFIXES["generic"]
+    
+    # Select prefix and suffix using seed + word_count for maximum variety
+    # Use different offsets to ensure prefix and suffix are independently selected
+    prefix_seed = (seed + word_count) % 10000
+    suffix_seed = (seed + word_count * 2 + 500) % 10000
+    
+    random.seed(prefix_seed)
+    prefix = random.choice(prefix_pool) if prefix_pool else "Generic"
+    
+    random.seed(suffix_seed)
+    suffix = random.choice(suffix_pool) if suffix_pool else "Spirit"
+    
+    return f"{prefix} {suffix}"
+
 def generate_enemy_from_readme(features: ReadmeFeatures, world_id: Optional[int] = None) -> Enemy:
     """
     Generate main enemy from README features.
+    Uses prefix/suffix system to create maximum variety of unique enemy names.
     """
     # Seed random with deterministic seed
     random.seed(features.seed)
@@ -87,22 +167,9 @@ def generate_enemy_from_readme(features: ReadmeFeatures, world_id: Optional[int]
     # Assign random creature image (1-120) based on seed for determinism
     enemy.creature_image_id = random.randint(1, 120)
     
-    # Determine name from keyword hits
+    # Generate unique name using prefix/suffix system
     keyword_hits = features.keyword_hits
-    max_hits = max(keyword_hits.values()) if keyword_hits else 0
-    
-    if keyword_hits.get("ai", 0) == max_hits and max_hits > 0:
-        enemy.name = "Neural Archon"
-    elif keyword_hits.get("scraping", 0) == max_hits and max_hits > 0:
-        enemy.name = "Web Crawler"
-    elif keyword_hits.get("web", 0) == max_hits and max_hits > 0:
-        enemy.name = "Frontend Elemental"
-    elif keyword_hits.get("backend", 0) == max_hits and max_hits > 0:
-        enemy.name = "Daemon Warden"
-    elif keyword_hits.get("cli", 0) == max_hits and max_hits > 0:
-        enemy.name = "Console Shade"
-    else:
-        enemy.name = "Generic Bug Spirit"
+    enemy.name = _generate_enemy_name(keyword_hits, features.seed, features.word_count)
     
     # Calculate stats
     enemy.level = min(1 + (features.word_count // 200) + features.heading_count * 2, 100)

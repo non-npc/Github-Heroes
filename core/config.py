@@ -78,6 +78,78 @@ KEYWORD_GROUPS = {
     "ai": ["machine learning", "neural", "deep learning", "ai", "artificial intelligence", "ml", "tensorflow", "pytorch"]
 }
 
+# Enemy name generation: Prefixes and Suffixes
+# These combine to create unique enemy names (prefix_count * suffix_count combinations)
+ENEMY_PREFIXES = {
+    # Generic prefixes (work with any keyword)
+    "generic": [
+        "Ancient", "Corrupted", "Dark", "Eternal", "Forgotten", "Hidden", "Lost", "Mystic", 
+        "Shadow", "Twisted", "Void", "Wandering", "Ancient", "Cursed", "Fallen", "Grim",
+        "Hollow", "Silent", "Vengeful", "Withering", "Broken", "Chaotic", "Dread", "Frozen",
+        "Glimmering", "Haunted", "Infernal", "Jagged", "Keen", "Luminous", "Muted", "Noxious"
+    ],
+    # AI-themed prefixes
+    "ai": [
+        "Neural", "Quantum", "Digital", "Synthetic", "Binary", "Algorithmic", "Computational",
+        "Cybernetic", "Data", "Logic", "Matrix", "Protocol", "Virtual", "Analytical", "Cognitive"
+    ],
+    # Web-themed prefixes
+    "web": [
+        "Frontend", "Browser", "DOM", "CSS", "JavaScript", "React", "Vue", "Angular", "Web",
+        "HTML", "Client", "UI", "UX", "Interface", "Markup", "Stylish"
+    ],
+    # Backend-themed prefixes
+    "backend": [
+        "Server", "API", "Database", "Daemon", "Service", "Backend", "REST", "GraphQL",
+        "Microservice", "Container", "Docker", "Kubernetes", "Node", "Express", "Django", "Flask"
+    ],
+    # CLI-themed prefixes
+    "cli": [
+        "Terminal", "Console", "Command", "Shell", "CLI", "Bash", "Prompt", "Script",
+        "Command-Line", "Interactive", "Text", "ASCII", "TTY", "Shell", "Executable"
+    ],
+    # Scraping-themed prefixes
+    "scraping": [
+        "Web", "Crawler", "Spider", "Scraper", "Parser", "Extractor", "Harvester", "Collector",
+        "Bot", "Agent", "Hunter", "Gatherer", "Indexer", "Searcher", "Tracker"
+    ]
+}
+
+ENEMY_SUFFIXES = {
+    # Generic suffixes (work with any keyword)
+    "generic": [
+        "Spirit", "Entity", "Wraith", "Specter", "Phantom", "Guardian", "Warden", "Keeper",
+        "Sentinel", "Defender", "Protector", "Watcher", "Beast", "Creature", "Fiend", "Demon",
+        "Monster", "Horror", "Abomination", "Terror", "Archon", "Lord", "Master", "Ruler",
+        "King", "Queen", "Prince", "Princess", "Champion", "Warrior", "Knight", "Paladin"
+    ],
+    # AI-themed suffixes
+    "ai": [
+        "Archon", "Network", "Core", "Matrix", "Node", "Processor", "Engine", "System",
+        "Intelligence", "Mind", "Brain", "Neural Net", "AI", "Machine", "Bot", "Agent"
+    ],
+    # Web-themed suffixes
+    "web": [
+        "Elemental", "Renderer", "Component", "Widget", "View", "Template", "Page", "Site",
+        "App", "Interface", "Display", "Canvas", "Frame", "Window", "Panel", "Screen"
+    ],
+    # Backend-themed suffixes
+    "backend": [
+        "Warden", "Server", "Daemon", "Service", "API", "Endpoint", "Handler", "Controller",
+        "Router", "Gateway", "Proxy", "Cache", "Database", "Store", "Repository", "Engine"
+    ],
+    # CLI-themed suffixes
+    "cli": [
+        "Shade", "Shell", "Terminal", "Console", "Prompt", "CLI", "Command", "Script",
+        "Executor", "Runner", "Interpreter", "Parser", "Processor", "Handler", "Tool"
+    ],
+    # Scraping-themed suffixes
+    "scraping": [
+        "Crawler", "Spider", "Bot", "Scraper", "Parser", "Extractor", "Harvester", "Collector",
+        "Hunter", "Seeker", "Tracker", "Gatherer", "Agent", "Drone", "Scout", "Probe"
+    ]
+}
+
 # Health state thresholds (days since last commit)
 HEALTH_VIBRANT = 14
 HEALTH_STABLE = 90
