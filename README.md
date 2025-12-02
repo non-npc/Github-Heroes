@@ -71,6 +71,7 @@ python main.py
 - HTTP process repo data
 - Background threading for network operations
 - Deterministic procedural generation
+- version 1.0.0
 
 ## License
 
