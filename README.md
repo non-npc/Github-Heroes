@@ -99,8 +99,7 @@ python main.py
 
 ## Contributors
 
-- **non-npc**: Initial concept and push
-- **imc-avishayr**: App icons (ICO, PNG, SVG formats)
+- see AUTHORS.md
 
 ## Contributing
 
