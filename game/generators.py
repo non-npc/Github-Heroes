@@ -154,10 +154,19 @@ def _generate_enemy_name(keyword_hits: dict, seed: int, word_count: int) -> str:
     
     return f"{prefix} {suffix}"
 
-def generate_enemy_from_readme(features: ReadmeFeatures, world_id: Optional[int] = None) -> Enemy:
+def generate_enemy_from_readme(
+    features: ReadmeFeatures, 
+    world_id: Optional[int] = None,
+    stars: int = 0,
+    forks: int = 0,
+    activity_score: int = 0,
+    total_files: int = 0,
+    commit_count: int = 0
+) -> Enemy:
     """
-    Generate main enemy from README features.
+    Generate main enemy from README features and repository stats.
     Uses prefix/suffix system to create maximum variety of unique enemy names.
+    Boss level scales with repository size and activity, not just README length.
     """
     # Seed random with deterministic seed
     random.seed(features.seed)
@@ -171,11 +180,52 @@ def generate_enemy_from_readme(features: ReadmeFeatures, world_id: Optional[int]
     keyword_hits = features.keyword_hits
     enemy.name = _generate_enemy_name(keyword_hits, features.seed, features.word_count)
     
-    # Calculate stats
-    enemy.level = min(1 + (features.word_count // 200) + features.heading_count * 2, 100)
-    enemy.hp = 50 + features.word_count * 2
-    enemy.attack = 5 + features.heading_count * 3
-    enemy.defense = 5 + features.word_count // 500
+    # Calculate level based on repository size and activity (not just README length)
+    # Larger, more active repos should have higher level bosses
+    
+    # Base level from activity score (scaled down)
+    # Activity score = commits*10 + stars + forks*2 + watchers*3
+    activity_level = min(activity_score // 100, 30)  # Max 30 from activity
+    
+    # Level from repository size (file count)
+    # More files = more complex codebase = harder boss
+    file_level = min(total_files // 10, 25)  # Max 25 from file count
+    
+    # Level from stars (popularity indicator)
+    # Popular repos are more challenging
+    stars_level = min(stars // 100, 20)  # Max 20 from stars (100 stars = level 1)
+    
+    # Level from forks (community engagement)
+    forks_level = min(forks // 50, 15)  # Max 15 from forks (50 forks = level 1)
+    
+    # Level from commits (activity indicator)
+    commit_level = min(commit_count // 5, 10)  # Max 10 from commits (5 commits = level 1)
+    
+    # Small bonus from README quality (but not the main factor)
+    readme_bonus = min(features.word_count // 500, 5)  # Max 5 from README (500 words = +1 level)
+    
+    # Combine all factors
+    enemy.level = min(
+        1 + activity_level + file_level + stars_level + forks_level + commit_level + readme_bonus,
+        100
+    )
+    
+    # Stats scale with level and repository metrics
+    base_hp = 50
+    hp_from_level = enemy.level * 10
+    hp_from_files = total_files * 2
+    enemy.hp = base_hp + hp_from_level + hp_from_files
+    
+    base_attack = 5
+    attack_from_level = enemy.level * 2
+    attack_from_stars = min(stars // 50, 20)  # Max +20 from stars
+    enemy.attack = base_attack + attack_from_level + attack_from_stars
+    
+    base_defense = 5
+    defense_from_level = enemy.level
+    defense_from_activity = min(activity_score // 200, 15)  # Max +15 from activity
+    enemy.defense = base_defense + defense_from_level + defense_from_activity
+    
     enemy.speed = random.randint(5, 20)
     
     # Set tags
@@ -212,6 +262,10 @@ def generate_dungeon_rooms(tree_entries: List, world_id: int, stars: int, health
     for entry in tree_entries:
         if entry.is_dir:
             continue  # Skip directories, only create rooms for files
+        
+        # Skip entries with empty or invalid file paths
+        if not entry.path or not entry.path.strip():
+            continue
         
         room = DungeonRoom()
         room.world_id = world_id
@@ -358,7 +412,15 @@ def build_repo_world(owner: str, repo: str, scraper: GitHubScraper, progress_cal
         
         # Generate main enemy
         update_progress(70, "Generating main enemy...")
-        main_enemy = generate_enemy_from_readme(readme_features, world.id)
+        main_enemy = generate_enemy_from_readme(
+            readme_features, 
+            world.id,
+            stars=repo_meta.stars,
+            forks=repo_meta.forks,
+            activity_score=activity_features["activity_score"],
+            total_files=structure_features.get("total_files", 0),
+            commit_count=len(commits)
+        )
         main_enemy = EnemyRepository.create(main_enemy)
         world.main_enemy_id = main_enemy.id
         RepoWorldRepository.update(world)
@@ -412,16 +474,19 @@ def build_repo_world(owner: str, repo: str, scraper: GitHubScraper, progress_cal
         if pulls_html:
             update_progress(95, "Processing pull requests...")
             pulls = parse_pulls(pulls_html)
+            # Use main enemy level as base for PR boss scaling
+            base_repo_level = main_enemy.level
             for pr in pulls[:10]:  # Limit to first 10 PRs
+                pr_level = compute_pr_boss_level(pr, base_repo_level)
                 # Create boss enemy for PR
                 boss = Enemy(
                     world_id=world.id,
                     name=f"PR #{pr.pr_number}: {pr.title[:30]}",
-                    level=compute_pr_boss_level(pr),
-                    hp=100 + compute_pr_boss_level(pr) * 10,
-                    attack=10 + compute_pr_boss_level(pr) * 2,
-                    defense=5 + compute_pr_boss_level(pr),
-                    speed=8 + compute_pr_boss_level(pr) // 2,
+                    level=pr_level,
+                    hp=100 + pr_level * 10,
+                    attack=10 + pr_level * 2,
+                    defense=5 + pr_level,
+                    speed=8 + pr_level // 2,
                     is_boss=True
                 )
                 boss.set_tags(["pull-request", "boss"])
@@ -433,7 +498,7 @@ def build_repo_world(owner: str, repo: str, scraper: GitHubScraper, progress_cal
                     source_type="pr",
                     source_number=pr.pr_number,
                     title=pr.title,
-                    difficulty=compute_pr_boss_level(pr),
+                    difficulty=pr_level,
                     status="new"
                 )
                 QuestRepository.create(quest)

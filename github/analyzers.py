@@ -150,16 +150,23 @@ def compute_issue_difficulty(issue: IssueData) -> int:
     
     return min(difficulty, 20)  # Cap at 20
 
-def compute_pr_boss_level(pr: PullRequestData) -> int:
+def compute_pr_boss_level(pr: PullRequestData, base_repo_level: int = 1) -> int:
     """
     Compute boss level for a pull request.
-    """
-    level = 5  # Base level
+    PR bosses should scale with the repository's overall difficulty.
     
-    # Increase based on comment count
+    Args:
+        pr: Pull request data
+        base_repo_level: Base level from main enemy (indicates repo size/activity)
+    """
+    # Base level scales with repository difficulty
+    # PRs in larger repos should be more challenging
+    level = max(1, base_repo_level // 2)  # Start at half the main enemy level, min 1
+    
+    # Increase based on comment count (indicates discussion/complexity)
     level += pr.comment_count // 3
     
-    # Increase based on diff size
+    # Increase based on diff size (larger changes = harder)
     if pr.additions and pr.deletions:
         total_changes = pr.additions + pr.deletions
         if total_changes > 1000:
@@ -169,5 +176,7 @@ def compute_pr_boss_level(pr: PullRequestData) -> int:
         elif total_changes > 100:
             level += 2
     
-    return min(level, 50)  # Cap at 50
+    # Cap relative to repo level (PRs shouldn't be way harder than main boss)
+    max_level = min(base_repo_level + 10, 50)
+    return min(level, max_level)
 
