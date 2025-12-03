@@ -120,7 +120,6 @@ When submitting a PR, please make sure your code follows the existing style and 
 ## NOTES
 
 - updates may break existing save games and may require starting fresh.
-- Currently a repo's size determines the loot quality, so for example the godot repo will provide the highest tier loot due to its size.
 
 ## License
 
