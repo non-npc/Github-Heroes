@@ -617,7 +617,7 @@ class MainWindow(QMainWindow):
         about_box.setWindowTitle("About Github Heroes")
         about_box.setText(
             f"Github Heroes v{APP_VERSION}\n\n"
-            "An endless incremental rpg \"Github Repo\" game by non-npc"
+            "Game concept by non-npc"
         )
         
         # Set the application icon
