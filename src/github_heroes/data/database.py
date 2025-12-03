@@ -1,37 +1,38 @@
 """
 SQLite database connection and schema initialization.
 """
+
 import sqlite3
-import json
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
 from github_heroes.core.config import DB_PATH
 from github_heroes.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+
 class Database:
     """
     Database connection and management.
     """
-    
+
     def __init__(self, db_path: Optional[Path] = None):
         self.db_path = db_path or DB_PATH
         self.conn: Optional[sqlite3.Connection] = None
         self._initialize()
-    
+
     def _initialize(self):
         """Initialize database connection and create schema."""
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self._create_schema()
         logger.info(f"Database initialized at {self.db_path}")
-    
+
     def _create_schema(self):
         """Create all database tables."""
         cursor = self.conn.cursor()
-        
+
         # Settings table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS settings (
@@ -39,7 +40,7 @@ class Database:
                 value TEXT
             )
         """)
-        
+
         # Players table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS players (
@@ -57,7 +58,7 @@ class Database:
                 updated_at TEXT NOT NULL
             )
         """)
-        
+
         # Repo worlds table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS repo_worlds (
@@ -78,7 +79,7 @@ class Database:
                 last_scraped_at TEXT
             )
         """)
-        
+
         # Enemies table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS enemies (
@@ -95,7 +96,7 @@ class Database:
                 FOREIGN KEY (world_id) REFERENCES repo_worlds(id)
             )
         """)
-        
+
         # Dungeon rooms table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS dungeon_rooms (
@@ -109,7 +110,7 @@ class Database:
                 FOREIGN KEY (world_id) REFERENCES repo_worlds(id)
             )
         """)
-        
+
         # Quests table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS quests (
@@ -123,7 +124,7 @@ class Database:
                 FOREIGN KEY (world_id) REFERENCES repo_worlds(id)
             )
         """)
-        
+
         # Items table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS items (
@@ -134,7 +135,7 @@ class Database:
                 description TEXT
             )
         """)
-        
+
         # Player inventory table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS player_inventory (
@@ -148,44 +149,48 @@ class Database:
                 UNIQUE(player_id, item_id)
             )
         """)
-        
+
         # Add equipped column if it doesn't exist (migration)
         try:
-            cursor.execute("ALTER TABLE player_inventory ADD COLUMN equipped INTEGER NOT NULL DEFAULT 0")
+            cursor.execute(
+                "ALTER TABLE player_inventory ADD COLUMN equipped INTEGER NOT NULL DEFAULT 0"
+            )
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
-        
+
         # Add equipment_type column to items table if it doesn't exist (migration)
         try:
             cursor.execute("ALTER TABLE items ADD COLUMN equipment_type TEXT")
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
-        
+
         # Add creature_image_id column to enemies table if it doesn't exist (migration)
         try:
             cursor.execute("ALTER TABLE enemies ADD COLUMN creature_image_id INTEGER")
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
-        
+
         # Add player_image_id column to players table if it doesn't exist (migration)
         try:
             cursor.execute("ALTER TABLE players ADD COLUMN player_image_id INTEGER")
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
-        
+
         # Migrate github_handle to player_class if needed
         try:
             cursor.execute("ALTER TABLE players ADD COLUMN player_class TEXT")
             # Copy github_handle to player_class for existing records
-            cursor.execute("UPDATE players SET player_class = github_handle WHERE player_class IS NULL AND github_handle IS NOT NULL")
+            cursor.execute(
+                "UPDATE players SET player_class = github_handle WHERE player_class IS NULL AND github_handle IS NOT NULL"
+            )
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # Column already exists
-        
+
         # Achievements table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS achievements (
@@ -197,7 +202,7 @@ class Database:
                 UNIQUE(player_id, achievement_id)
             )
         """)
-        
+
         # Player stats tracking table (for achievement calculations)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS player_stats (
@@ -214,58 +219,73 @@ class Database:
                 FOREIGN KEY (player_id) REFERENCES players(id)
             )
         """)
-        
+
         # Create indices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_repo_worlds_full_name ON repo_worlds(full_name)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_enemies_world_id ON enemies(world_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_dungeon_rooms_world_id ON dungeon_rooms(world_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_quests_world_id ON quests(world_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_inventory_player_id ON player_inventory(player_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_player_id ON achievements(player_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_achievement_id ON achievements(achievement_id)")
-        
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_repo_worlds_full_name ON repo_worlds(full_name)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_enemies_world_id ON enemies(world_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_dungeon_rooms_world_id ON dungeon_rooms(world_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_quests_world_id ON quests(world_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_player_inventory_player_id ON player_inventory(player_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_achievements_player_id ON achievements(player_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_achievements_achievement_id ON achievements(achievement_id)"
+        )
+
         self.conn.commit()
         logger.info("Database schema created/verified")
-    
+
     def get_connection(self) -> sqlite3.Connection:
         """Get the database connection."""
         if self.conn is None:
             self._initialize()
         return self.conn
-    
+
     def close(self):
         """Close the database connection."""
         if self.conn:
             self.conn.close()
             self.conn = None
             logger.info("Database connection closed")
-    
+
     def execute(self, query: str, params: tuple = ()):
         """Execute a query and return cursor."""
         cursor = self.conn.cursor()
         cursor.execute(query, params)
         return cursor
-    
+
     def commit(self):
         """Commit the current transaction."""
         self.conn.commit()
-    
+
     def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """Get a setting value."""
         cursor = self.execute("SELECT value FROM settings WHERE key = ?", (key,))
         row = cursor.fetchone()
         return row[0] if row else default
-    
+
     def set_setting(self, key: str, value: str):
         """Set a setting value."""
         self.execute(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-            (key, value)
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value)
         )
         self.commit()
 
+
 # Global database instance
 _db_instance: Optional[Database] = None
+
 
 def get_db() -> Database:
     """Get the global database instance."""
@@ -273,4 +293,3 @@ def get_db() -> Database:
     if _db_instance is None:
         _db_instance = Database()
     return _db_instance
-

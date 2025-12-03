@@ -1,13 +1,20 @@
 """
 Game rules, combat system, loot generation, XP, and leveling.
 """
+
 import random
-from typing import Tuple, Optional, Dict, List
-from github_heroes.data.models import Player, Enemy, Item
-from github_heroes.data.repositories import PlayerRepository, ItemRepository, PlayerStatsRepository
+from typing import Dict, Optional, Tuple
+
 from github_heroes.core.logging_utils import get_logger
+from github_heroes.data.models import Enemy, Item, Player
+from github_heroes.data.repositories import (
+    ItemRepository,
+    PlayerRepository,
+    PlayerStatsRepository,
+)
 
 logger = get_logger(__name__)
+
 
 def calculate_inventory_space(level: int) -> int:
     """
@@ -22,6 +29,7 @@ def calculate_inventory_space(level: int) -> int:
     additional_slots = (level // 10) * 10
     return base_slots + additional_slots
 
+
 def calculate_damage(attacker_attack: int, defender_defense: int) -> int:
     """
     Calculate damage dealt.
@@ -31,10 +39,13 @@ def calculate_damage(attacker_attack: int, defender_defense: int) -> int:
     damage = max(1, base_damage + variance)
     return damage
 
-def combat_turn(player: Player, enemy: Enemy, action: str) -> Tuple[str, bool, Optional[str]]:
+
+def combat_turn(
+    player: Player, enemy: Enemy, action: str
+) -> Tuple[str, bool, Optional[str]]:
     """
     Execute a combat turn.
-    
+
     Returns: (message, combat_continues, result)
     - message: Description of what happened
     - combat_continues: Whether combat should continue
@@ -42,39 +53,41 @@ def combat_turn(player: Player, enemy: Enemy, action: str) -> Tuple[str, bool, O
     """
     messages = []
     result = None
-    
+
     if action == "attack":
         # Player attacks
         damage = calculate_damage(player.attack, enemy.defense)
         enemy.hp -= damage
         messages.append(f"You attack {enemy.name} for {damage} damage!")
-        
+
         if enemy.hp <= 0:
             messages.append(f"You defeated {enemy.name}!")
             result = "victory"
             return ("\n".join(messages), False, result)
-        
+
         # Enemy attacks back
         damage = calculate_damage(enemy.attack, player.defense)
         player.hp -= damage
         messages.append(f"{enemy.name} attacks you for {damage} damage!")
-        
+
         if player.hp <= 0:
             messages.append("You have been defeated!")
             result = "defeat"
             return ("\n".join(messages), False, result)
-    
+
     elif action == "defend":
         # Player defends (reduces incoming damage)
         damage = calculate_damage(enemy.attack, player.defense * 2)
         player.hp -= damage
-        messages.append(f"You defend! {enemy.name} attacks you for {damage} damage (reduced).")
-        
+        messages.append(
+            f"You defend! {enemy.name} attacks you for {damage} damage (reduced)."
+        )
+
         if player.hp <= 0:
             messages.append("You have been defeated!")
             result = "defeat"
             return ("\n".join(messages), False, result)
-    
+
     elif action == "flee":
         messages.append("You attempt to flee...")
         # 70% chance to flee successfully
@@ -87,13 +100,14 @@ def combat_turn(player: Player, enemy: Enemy, action: str) -> Tuple[str, bool, O
             damage = calculate_damage(enemy.attack, player.defense)
             player.hp -= damage
             messages.append(f"{enemy.name} attacks you for {damage} damage!")
-            
+
             if player.hp <= 0:
                 messages.append("You have been defeated!")
                 result = "defeat"
                 return ("\n".join(messages), False, result)
-    
+
     return ("\n".join(messages), True, result)
+
 
 def calculate_xp_reward(enemy: Enemy) -> int:
     """
@@ -104,6 +118,7 @@ def calculate_xp_reward(enemy: Enemy) -> int:
         base_xp *= 3
     return base_xp
 
+
 def award_xp(player: Player, xp: int) -> bool:
     """
     Award XP to player and check for level up.
@@ -111,28 +126,29 @@ def award_xp(player: Player, xp: int) -> bool:
     """
     player.xp += xp
     leveled_up = False
-    
+
     # Check for level up
     xp_needed = player.level * 100
     while player.xp >= xp_needed:
         player.xp -= xp_needed
         player.level += 1
         leveled_up = True
-        
+
         # Increase stats on level up
         player.hp += 10
         player.attack += 2
         player.defense += 1
         player.speed += 1
         player.luck += 1
-        
+
         xp_needed = player.level * 100
-    
+
     if leveled_up:
         PlayerRepository.update(player)
         logger.info(f"Player {player.name} leveled up to level {player.level}")
-    
+
     return leveled_up
+
 
 def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
     """
@@ -140,7 +156,7 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
     """
     # Determine rarity based on loot quality and enemy level
     rarity_roll = random.random()
-    
+
     if loot_quality >= 6 or (enemy.is_boss and rarity_roll < 0.3):
         rarity = "legendary"
     elif loot_quality >= 4 or (enemy.is_boss and rarity_roll < 0.5):
@@ -151,11 +167,11 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
         rarity = "uncommon"
     else:
         rarity = "common"
-    
+
     # Generate item name based on enemy tags
     tags = enemy.get_tags()
     item_name_parts = []
-    
+
     if "ai" in tags:
         item_name_parts.append("Neural")
     elif "web" in tags:
@@ -166,13 +182,13 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
         item_name_parts.append("Terminal")
     else:
         item_name_parts.append("Code")
-    
+
     # Item type
     item_types = ["Sword", "Shield", "Armor", "Ring", "Amulet", "Boots"]
     item_type = random.choice(item_types)
-    
+
     item_name = f"{item_name_parts[0]} {item_type}"
-    
+
     # Map item type to equipment type (lowercase)
     equipment_type_map = {
         "Sword": "weapon",
@@ -180,30 +196,31 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
         "Armor": "armor",
         "Ring": "ring",
         "Amulet": "amulet",
-        "Boots": "boots"
+        "Boots": "boots",
     }
     equipment_type = equipment_type_map.get(item_type, None)
-    
+
     # Generate stat bonuses
     stat_bonuses = {}
     bonus_points = loot_quality * 2
-    
+
     stats = ["hp", "attack", "defense", "speed", "luck"]
     for _ in range(bonus_points):
         stat = random.choice(stats)
         stat_bonuses[stat] = stat_bonuses.get(stat, 0) + 1
-    
+
     # Create item
     item = Item(
         name=item_name,
         rarity=rarity,
         stat_bonuses_json="",
         description=f"A {rarity} item dropped by {enemy.name}",
-        equipment_type=equipment_type
+        equipment_type=equipment_type,
     )
     item.set_stat_bonuses(stat_bonuses)
-    
+
     return item
+
 
 def apply_item_stats(player: Player, item: Item):
     """
@@ -214,54 +231,57 @@ def apply_item_stats(player: Player, item: Item):
         if hasattr(player, stat):
             setattr(player, stat, getattr(player, stat) + bonus)
 
-def handle_victory(player: Player, enemy: Enemy, loot_quality: int = 1, combat_context: Optional[Dict] = None) -> Tuple[Item, int, bool, Dict]:
+
+def handle_victory(
+    player: Player,
+    enemy: Enemy,
+    loot_quality: int = 1,
+    combat_context: Optional[Dict] = None,
+) -> Tuple[Item, int, bool, Dict]:
     """
     Handle player victory: award XP and generate loot.
     Returns: (loot_item, xp_gained, leveled_up, achievement_context)
     """
     xp = calculate_xp_reward(enemy)
-    old_level = player.level
     leveled_up = award_xp(player, xp)
-    
+
     # Track stats for achievements
     PlayerStatsRepository.increment_stat(player.id, "enemies_defeated", 1)
     PlayerStatsRepository.increment_stat(player.id, "total_xp_earned", xp)
     if enemy.is_boss:
         PlayerStatsRepository.increment_stat(player.id, "bosses_defeated", 1)
-    
+
     # Only generate loot 20% of the time (1 in 5 chance)
     loot = None
     if random.random() < 0.2:
         loot = generate_loot(enemy, loot_quality)
-    
+
     achievement_context = {}
-    
+
     if loot:
         # Check inventory space before adding
         inventory_count = ItemRepository.get_inventory_count(player.id)
         max_inventory = calculate_inventory_space(player.level)
-        
+
         if inventory_count >= max_inventory:
             # Inventory full - don't add item
             logger.warning(f"Player {player.name} inventory full, cannot add loot")
             return (None, xp, leveled_up, achievement_context)
-        
+
         loot = ItemRepository.create(loot)
         ItemRepository.add_to_inventory(player.id, loot.id, 1)
         PlayerStatsRepository.increment_stat(player.id, "items_collected", 1)
         achievement_context["item_rarity"] = loot.rarity
-    
+
     # Build achievement context
-    achievement_context.update({
-        "enemy_level": enemy.level,
-        "enemy": enemy
-    })
+    achievement_context.update({"enemy_level": enemy.level, "enemy": enemy})
     if combat_context:
         achievement_context.update(combat_context)
-    
+
     PlayerRepository.update(player)
-    
+
     return (loot, xp, leveled_up, achievement_context)
+
 
 def handle_defeat(player: Player) -> Dict:
     """
@@ -273,13 +293,11 @@ def handle_defeat(player: Player) -> Dict:
     xp_loss = min(player.xp, player.level * 10)
     player.xp = max(0, player.xp - xp_loss)
     player.hp = max(1, max_hp // 2)  # Restore to 50% HP instead of 1
-    
+
     PlayerRepository.update(player)
-    
-    return {
-        "xp_lost": xp_loss,
-        "hp_reset": True
-    }
+
+    return {"xp_lost": xp_loss, "hp_reset": True}
+
 
 def restore_player_hp(player: Player):
     """
@@ -289,4 +307,3 @@ def restore_player_hp(player: Player):
     if player.hp < max_hp:
         player.hp = max_hp
         PlayerRepository.update(player)
-

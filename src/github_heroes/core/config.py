@@ -1,13 +1,15 @@
 """
 Configuration constants and settings for Github Heroes.
 """
-import os
+
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 # Application info
 APP_NAME = "Github Heroes"
-APP_VERSION = "1.0.4"
+APP_VERSION = version("github-heroes")
+
 
 def get_resource_path(relative_path):
     """
@@ -22,6 +24,7 @@ def get_resource_path(relative_path):
         base_path = Path(__file__).parent.parent
     return base_path / relative_path
 
+
 # Paths
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -31,7 +34,9 @@ LOGS_DIR = BASE_DIR / "logs"
 # Icon paths (works for both development and compiled)
 APP_ICON_ICO = get_resource_path("assets/appicons/GitHubRPG.ico")
 APP_ICON_PNG = get_resource_path("assets/appicons/GitHubRPG.png")
-APP_ICON_SVG = get_resource_path("assets/appicons/GithubRPG.svg")  # Note: lowercase 'h' in Github
+APP_ICON_SVG = get_resource_path(
+    "assets/appicons/GithubRPG.svg"
+)  # Note: lowercase 'h' in Github
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
@@ -58,13 +63,7 @@ REQUEST_HEADERS = {
 }
 
 # Game constants
-DEFAULT_PLAYER_STATS = {
-    "hp": 100,
-    "attack": 10,
-    "defense": 5,
-    "speed": 8,
-    "luck": 5
-}
+DEFAULT_PLAYER_STATS = {"hp": 100, "attack": 10, "defense": 5, "speed": 8, "luck": 5}
 
 XP_PER_LEVEL = 100
 STAT_INCREASE_PER_LEVEL = 2
@@ -112,16 +111,45 @@ PLAYER_CLASSES = [
     "Error Message Decoder",
     "Stack Trace Reader",
     "Dependency Manager",
-    "Build Fixer"
+    "Build Fixer",
 ]
 
 # Keyword groups for README analysis
 KEYWORD_GROUPS = {
-    "web": ["html", "css", "javascript", "react", "frontend", "vue", "angular", "dom", "browser"],
-    "backend": ["api", "server", "database", "django", "flask", "node", "express", "backend", "rest"],
+    "web": [
+        "html",
+        "css",
+        "javascript",
+        "react",
+        "frontend",
+        "vue",
+        "angular",
+        "dom",
+        "browser",
+    ],
+    "backend": [
+        "api",
+        "server",
+        "database",
+        "django",
+        "flask",
+        "node",
+        "express",
+        "backend",
+        "rest",
+    ],
     "cli": ["cli", "command-line", "terminal", "console", "shell", "bash"],
     "scraping": ["scrape", "crawler", "spider", "parsing", "extract"],
-    "ai": ["machine learning", "neural", "deep learning", "ai", "artificial intelligence", "ml", "tensorflow", "pytorch"]
+    "ai": [
+        "machine learning",
+        "neural",
+        "deep learning",
+        "ai",
+        "artificial intelligence",
+        "ml",
+        "tensorflow",
+        "pytorch",
+    ],
 }
 
 # Enemy name generation: Prefixes and Suffixes
@@ -129,75 +157,266 @@ KEYWORD_GROUPS = {
 ENEMY_PREFIXES = {
     # Generic prefixes (work with any keyword)
     "generic": [
-        "Ancient", "Corrupted", "Dark", "Eternal", "Forgotten", "Hidden", "Lost", "Mystic", 
-        "Shadow", "Twisted", "Void", "Wandering", "Ancient", "Cursed", "Fallen", "Grim",
-        "Hollow", "Silent", "Vengeful", "Withering", "Broken", "Chaotic", "Dread", "Frozen",
-        "Glimmering", "Haunted", "Infernal", "Jagged", "Keen", "Luminous", "Muted", "Noxious"
+        "Ancient",
+        "Corrupted",
+        "Dark",
+        "Eternal",
+        "Forgotten",
+        "Hidden",
+        "Lost",
+        "Mystic",
+        "Shadow",
+        "Twisted",
+        "Void",
+        "Wandering",
+        "Ancient",
+        "Cursed",
+        "Fallen",
+        "Grim",
+        "Hollow",
+        "Silent",
+        "Vengeful",
+        "Withering",
+        "Broken",
+        "Chaotic",
+        "Dread",
+        "Frozen",
+        "Glimmering",
+        "Haunted",
+        "Infernal",
+        "Jagged",
+        "Keen",
+        "Luminous",
+        "Muted",
+        "Noxious",
     ],
     # AI-themed prefixes
     "ai": [
-        "Neural", "Quantum", "Digital", "Synthetic", "Binary", "Algorithmic", "Computational",
-        "Cybernetic", "Data", "Logic", "Matrix", "Protocol", "Virtual", "Analytical", "Cognitive"
+        "Neural",
+        "Quantum",
+        "Digital",
+        "Synthetic",
+        "Binary",
+        "Algorithmic",
+        "Computational",
+        "Cybernetic",
+        "Data",
+        "Logic",
+        "Matrix",
+        "Protocol",
+        "Virtual",
+        "Analytical",
+        "Cognitive",
     ],
     # Web-themed prefixes
     "web": [
-        "Frontend", "Browser", "DOM", "CSS", "JavaScript", "React", "Vue", "Angular", "Web",
-        "HTML", "Client", "UI", "UX", "Interface", "Markup", "Stylish"
+        "Frontend",
+        "Browser",
+        "DOM",
+        "CSS",
+        "JavaScript",
+        "React",
+        "Vue",
+        "Angular",
+        "Web",
+        "HTML",
+        "Client",
+        "UI",
+        "UX",
+        "Interface",
+        "Markup",
+        "Stylish",
     ],
     # Backend-themed prefixes
     "backend": [
-        "Server", "API", "Database", "Daemon", "Service", "Backend", "REST", "GraphQL",
-        "Microservice", "Container", "Docker", "Kubernetes", "Node", "Express", "Django", "Flask"
+        "Server",
+        "API",
+        "Database",
+        "Daemon",
+        "Service",
+        "Backend",
+        "REST",
+        "GraphQL",
+        "Microservice",
+        "Container",
+        "Docker",
+        "Kubernetes",
+        "Node",
+        "Express",
+        "Django",
+        "Flask",
     ],
     # CLI-themed prefixes
     "cli": [
-        "Terminal", "Console", "Command", "Shell", "CLI", "Bash", "Prompt", "Script",
-        "Command-Line", "Interactive", "Text", "ASCII", "TTY", "Shell", "Executable"
+        "Terminal",
+        "Console",
+        "Command",
+        "Shell",
+        "CLI",
+        "Bash",
+        "Prompt",
+        "Script",
+        "Command-Line",
+        "Interactive",
+        "Text",
+        "ASCII",
+        "TTY",
+        "Shell",
+        "Executable",
     ],
     # Scraping-themed prefixes
     "scraping": [
-        "Web", "Crawler", "Spider", "Scraper", "Parser", "Extractor", "Harvester", "Collector",
-        "Bot", "Agent", "Hunter", "Gatherer", "Indexer", "Searcher", "Tracker"
-    ]
+        "Web",
+        "Crawler",
+        "Spider",
+        "Scraper",
+        "Parser",
+        "Extractor",
+        "Harvester",
+        "Collector",
+        "Bot",
+        "Agent",
+        "Hunter",
+        "Gatherer",
+        "Indexer",
+        "Searcher",
+        "Tracker",
+    ],
 }
 
 ENEMY_SUFFIXES = {
     # Generic suffixes (work with any keyword)
     "generic": [
-        "Spirit", "Entity", "Wraith", "Specter", "Phantom", "Guardian", "Warden", "Keeper",
-        "Sentinel", "Defender", "Protector", "Watcher", "Beast", "Creature", "Fiend", "Demon",
-        "Monster", "Horror", "Abomination", "Terror", "Archon", "Lord", "Master", "Ruler",
-        "King", "Queen", "Prince", "Princess", "Champion", "Warrior", "Knight", "Paladin"
+        "Spirit",
+        "Entity",
+        "Wraith",
+        "Specter",
+        "Phantom",
+        "Guardian",
+        "Warden",
+        "Keeper",
+        "Sentinel",
+        "Defender",
+        "Protector",
+        "Watcher",
+        "Beast",
+        "Creature",
+        "Fiend",
+        "Demon",
+        "Monster",
+        "Horror",
+        "Abomination",
+        "Terror",
+        "Archon",
+        "Lord",
+        "Master",
+        "Ruler",
+        "King",
+        "Queen",
+        "Prince",
+        "Princess",
+        "Champion",
+        "Warrior",
+        "Knight",
+        "Paladin",
     ],
     # AI-themed suffixes
     "ai": [
-        "Archon", "Network", "Core", "Matrix", "Node", "Processor", "Engine", "System",
-        "Intelligence", "Mind", "Brain", "Neural Net", "AI", "Machine", "Bot", "Agent"
+        "Archon",
+        "Network",
+        "Core",
+        "Matrix",
+        "Node",
+        "Processor",
+        "Engine",
+        "System",
+        "Intelligence",
+        "Mind",
+        "Brain",
+        "Neural Net",
+        "AI",
+        "Machine",
+        "Bot",
+        "Agent",
     ],
     # Web-themed suffixes
     "web": [
-        "Elemental", "Renderer", "Component", "Widget", "View", "Template", "Page", "Site",
-        "App", "Interface", "Display", "Canvas", "Frame", "Window", "Panel", "Screen"
+        "Elemental",
+        "Renderer",
+        "Component",
+        "Widget",
+        "View",
+        "Template",
+        "Page",
+        "Site",
+        "App",
+        "Interface",
+        "Display",
+        "Canvas",
+        "Frame",
+        "Window",
+        "Panel",
+        "Screen",
     ],
     # Backend-themed suffixes
     "backend": [
-        "Warden", "Server", "Daemon", "Service", "API", "Endpoint", "Handler", "Controller",
-        "Router", "Gateway", "Proxy", "Cache", "Database", "Store", "Repository", "Engine"
+        "Warden",
+        "Server",
+        "Daemon",
+        "Service",
+        "API",
+        "Endpoint",
+        "Handler",
+        "Controller",
+        "Router",
+        "Gateway",
+        "Proxy",
+        "Cache",
+        "Database",
+        "Store",
+        "Repository",
+        "Engine",
     ],
     # CLI-themed suffixes
     "cli": [
-        "Shade", "Shell", "Terminal", "Console", "Prompt", "CLI", "Command", "Script",
-        "Executor", "Runner", "Interpreter", "Parser", "Processor", "Handler", "Tool"
+        "Shade",
+        "Shell",
+        "Terminal",
+        "Console",
+        "Prompt",
+        "CLI",
+        "Command",
+        "Script",
+        "Executor",
+        "Runner",
+        "Interpreter",
+        "Parser",
+        "Processor",
+        "Handler",
+        "Tool",
     ],
     # Scraping-themed suffixes
     "scraping": [
-        "Crawler", "Spider", "Bot", "Scraper", "Parser", "Extractor", "Harvester", "Collector",
-        "Hunter", "Seeker", "Tracker", "Gatherer", "Agent", "Drone", "Scout", "Probe"
-    ]
+        "Crawler",
+        "Spider",
+        "Bot",
+        "Scraper",
+        "Parser",
+        "Extractor",
+        "Harvester",
+        "Collector",
+        "Hunter",
+        "Seeker",
+        "Tracker",
+        "Gatherer",
+        "Agent",
+        "Drone",
+        "Scout",
+        "Probe",
+    ],
 }
 
 # Health state thresholds (days since last commit)
 HEALTH_VIBRANT = 14
 HEALTH_STABLE = 90
 HEALTH_FRAIL = 365
-
