@@ -75,11 +75,13 @@ class NewPlayerDialog(QDialog):
         layout.addWidget(name_label)
         layout.addWidget(self.name_input)
         
-        github_label = QLabel("GitHub Handle (optional):")
-        self.github_input = QLineEdit()
-        self.github_input.setPlaceholderText("username")
-        layout.addWidget(github_label)
-        layout.addWidget(self.github_input)
+        class_label = QLabel("Class:")
+        self.class_combo = QComboBox()
+        from core.config import PLAYER_CLASSES
+        self.class_combo.addItems(PLAYER_CLASSES)
+        self.class_combo.setCurrentIndex(0)  # Default to first class
+        layout.addWidget(class_label)
+        layout.addWidget(self.class_combo)
         
         # Player image selector
         from ui.widgets.player_image_selector import PlayerImageSelector
@@ -103,9 +105,11 @@ class NewPlayerDialog(QDialog):
     
     def get_player_data(self):
         """Get player data from dialog."""
+        from core.config import PLAYER_CLASSES
+        selected_class = self.class_combo.currentText()
         return {
             "name": self.name_input.text().strip() or "Hero",
-            "github_handle": self.github_input.text().strip() or None,
+            "player_class": selected_class if selected_class in PLAYER_CLASSES else PLAYER_CLASSES[0],
             "player_image_id": self.selected_image_id
         }
 
@@ -305,7 +309,7 @@ class MainWindow(QMainWindow):
             data = dialog.get_player_data()
             player = Player(
                 name=data["name"],
-                github_handle=data["github_handle"],
+                player_class=data.get("player_class"),
                 player_image_id=data.get("player_image_id")
             )
             player = PlayerRepository.create(player)
@@ -390,6 +394,20 @@ class MainWindow(QMainWindow):
             self.map_view.refresh_worlds()
             self.quest_board.refresh_worlds()
             self.dungeon_view.refresh_worlds()
+            
+            # Check achievements for repository addition
+            game_state = get_game_state()
+            if game_state.current_player:
+                from game.achievements import check_achievements
+                from game.achievements import ACHIEVEMENTS
+                context = {"repository_added": True}
+                newly_unlocked = check_achievements(game_state.current_player, context)
+                if newly_unlocked:
+                    achievement_names = [ACHIEVEMENTS[ach_id]["name"] for ach_id in newly_unlocked if ach_id in ACHIEVEMENTS]
+                    if achievement_names:
+                        ach_msg = "🏆 Achievement Unlocked!\n\n" + "\n".join(f"• {name}" for name in achievement_names)
+                        QMessageBox.information(self, "Achievement Unlocked!", ach_msg)
+                self.player_view.refresh()
         else:
             self.status_bar.set_status("Failed to process repository")
             QMessageBox.warning(self, "Error", "Failed to process repository. Please check the URL and try again.")
@@ -526,19 +544,59 @@ class MainWindow(QMainWindow):
             if quest:
                 quest.status = "completed"
                 QuestRepository.update(quest)
+                
+                # Track quest completion stats
+                from data.repositories import PlayerStatsRepository
+                from game.achievements import check_achievements
+                game_state = get_game_state()
+                if game_state.current_player:
+                    PlayerStatsRepository.increment_stat(game_state.current_player.id, "quests_completed", 1)
+                    if quest.source_type == "issue":
+                        PlayerStatsRepository.increment_stat(game_state.current_player.id, "issues_completed", 1)
+                    elif quest.source_type == "pr":
+                        PlayerStatsRepository.increment_stat(game_state.current_player.id, "prs_completed", 1)
+                    
+                    # Check achievements
+                    newly_unlocked = check_achievements(game_state.current_player)
+                    if newly_unlocked:
+                        from game.achievements import ACHIEVEMENTS
+                        achievement_names = [ACHIEVEMENTS[ach_id]["name"] for ach_id in newly_unlocked if ach_id in ACHIEVEMENTS]
+                        if achievement_names:
+                            ach_msg = "🏆 Achievement Unlocked!\n\n" + "\n".join(f"• {name}" for name in achievement_names)
+                            from PyQt6.QtWidgets import QMessageBox
+                            QMessageBox.information(self, "Achievement Unlocked!", ach_msg)
+                
                 self.quest_board.refresh_quests(quest.world_id)
+                self.map_view.refresh_worlds()  # Update quest/room counts
         
         self.player_view.refresh()
     
     def on_room_combat_ended(self, room_id: int, result: str, data: dict):
         """Handle combat end for room."""
         if result == "victory":
-            from data.repositories import DungeonRoomRepository
+            from data.repositories import DungeonRoomRepository, PlayerStatsRepository
+            from game.achievements import check_achievements
+            game_state = get_game_state()
             room = DungeonRoomRepository.get_by_id(room_id)
             if room:
+                if not room.visited and game_state.current_player:
+                    PlayerStatsRepository.increment_stat(game_state.current_player.id, "rooms_explored", 1)
                 room.visited = True
                 DungeonRoomRepository.update(room)
+                
+                # Check for zone completion achievement
+                if game_state.current_player:
+                    newly_unlocked = check_achievements(game_state.current_player)
+                    if newly_unlocked:
+                        from game.achievements import ACHIEVEMENTS
+                        achievement_names = [ACHIEVEMENTS[ach_id]["name"] for ach_id in newly_unlocked if ach_id in ACHIEVEMENTS]
+                        if achievement_names:
+                            ach_msg = "🏆 Achievement Unlocked!\n\n" + "\n".join(f"• {name}" for name in achievement_names)
+                            from PyQt6.QtWidgets import QMessageBox
+                            QMessageBox.information(self, "Achievement Unlocked!", ach_msg)
+                
                 self.dungeon_view.refresh_rooms(room.world_id)
+                self.map_view.refresh_worlds()  # Update quest/room counts
         
         self.player_view.refresh()
     

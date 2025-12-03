@@ -52,7 +52,7 @@ class Database:
                 defense INTEGER NOT NULL DEFAULT 5,
                 speed INTEGER NOT NULL DEFAULT 8,
                 luck INTEGER NOT NULL DEFAULT 5,
-                github_handle TEXT,
+                player_class TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
@@ -177,12 +177,52 @@ class Database:
         except sqlite3.OperationalError:
             pass  # Column already exists
         
+        # Migrate github_handle to player_class if needed
+        try:
+            cursor.execute("ALTER TABLE players ADD COLUMN player_class TEXT")
+            # Copy github_handle to player_class for existing records
+            cursor.execute("UPDATE players SET player_class = github_handle WHERE player_class IS NULL AND github_handle IS NOT NULL")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
+        # Achievements table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                unlocked_at TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(id),
+                UNIQUE(player_id, achievement_id)
+            )
+        """)
+        
+        # Player stats tracking table (for achievement calculations)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS player_stats (
+                player_id INTEGER PRIMARY KEY,
+                enemies_defeated INTEGER DEFAULT 0,
+                bosses_defeated INTEGER DEFAULT 0,
+                quests_completed INTEGER DEFAULT 0,
+                issues_completed INTEGER DEFAULT 0,
+                prs_completed INTEGER DEFAULT 0,
+                rooms_explored INTEGER DEFAULT 0,
+                items_collected INTEGER DEFAULT 0,
+                total_xp_earned INTEGER DEFAULT 0,
+                perfect_victories INTEGER DEFAULT 0,
+                FOREIGN KEY (player_id) REFERENCES players(id)
+            )
+        """)
+        
         # Create indices
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_repo_worlds_full_name ON repo_worlds(full_name)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_enemies_world_id ON enemies(world_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_dungeon_rooms_world_id ON dungeon_rooms(world_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_quests_world_id ON quests(world_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_player_inventory_player_id ON player_inventory(player_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_player_id ON achievements(player_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_achievement_id ON achievements(achievement_id)")
         
         self.conn.commit()
         logger.info("Database schema created/verified")

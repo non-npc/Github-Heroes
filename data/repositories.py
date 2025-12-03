@@ -1,11 +1,11 @@
 """
 Data access layer for database operations.
 """
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from data.database import get_db
 from data.models import (
-    Player, RepoWorld, Enemy, DungeonRoom, Quest, Item
+    Player, RepoWorld, Enemy, DungeonRoom, Quest, Item, Achievement
 )
 from core.logging_utils import get_logger
 
@@ -20,12 +20,12 @@ class PlayerRepository:
         db = get_db()
         now = datetime.now().isoformat()
         cursor = db.execute("""
-            INSERT INTO players (name, level, xp, hp, attack, defense, speed, luck, github_handle, player_image_id, created_at, updated_at)
+            INSERT INTO players (name, level, xp, hp, attack, defense, speed, luck, player_class, player_image_id, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             player.name, player.level, player.xp, player.hp,
             player.attack, player.defense, player.speed, player.luck,
-            player.github_handle, player.player_image_id, now, now
+            player.player_class, player.player_image_id, now, now
         ))
         db.commit()
         player.id = cursor.lastrowid
@@ -45,10 +45,14 @@ class PlayerRepository:
                 player_image_id = row["player_image_id"]
             except (KeyError, IndexError):
                 player_image_id = None
+            try:
+                player_class = row["player_class"]
+            except (KeyError, IndexError):
+                player_class = None
             return Player(
                 id=row["id"], name=row["name"], level=row["level"], xp=row["xp"],
                 hp=row["hp"], attack=row["attack"], defense=row["defense"],
-                speed=row["speed"], luck=row["luck"], github_handle=row["github_handle"],
+                speed=row["speed"], luck=row["luck"], player_class=player_class,
                 player_image_id=player_image_id,
                 created_at=row["created_at"], updated_at=row["updated_at"]
             )
@@ -60,12 +64,12 @@ class PlayerRepository:
         db = get_db()
         player.updated_at = datetime.now().isoformat()
         db.execute("""
-            UPDATE players SET name=?, level=?, xp=?, hp=?, attack=?, defense=?, speed=?, luck=?, github_handle=?, player_image_id=?, updated_at=?
+            UPDATE players SET name=?, level=?, xp=?, hp=?, attack=?, defense=?, speed=?, luck=?, player_class=?, player_image_id=?, updated_at=?
             WHERE id=?
         """, (
             player.name, player.level, player.xp, player.hp,
             player.attack, player.defense, player.speed, player.luck,
-            player.github_handle, player.player_image_id, player.updated_at, player.id
+            player.player_class, player.player_image_id, player.updated_at, player.id
         ))
         db.commit()
         return player
@@ -81,10 +85,14 @@ class PlayerRepository:
                 player_image_id = row["player_image_id"]
             except (KeyError, IndexError):
                 player_image_id = None
+            try:
+                player_class = row["player_class"]
+            except (KeyError, IndexError):
+                player_class = None
             result.append(Player(
                 id=row["id"], name=row["name"], level=row["level"], xp=row["xp"],
                 hp=row["hp"], attack=row["attack"], defense=row["defense"],
-                speed=row["speed"], luck=row["luck"], github_handle=row["github_handle"],
+                speed=row["speed"], luck=row["luck"], player_class=player_class,
                 player_image_id=player_image_id,
                 created_at=row["created_at"], updated_at=row["updated_at"]
             ))
@@ -515,4 +523,115 @@ class ItemRepository:
         """, (player_id,))
         row = cursor.fetchone()
         return row["count"] if row else 0
+
+class AchievementRepository:
+    """Repository for achievement operations."""
+    
+    @staticmethod
+    def create(achievement: Achievement) -> Achievement:
+        """Create a new achievement unlock."""
+        db = get_db()
+        now = datetime.now().isoformat()
+        cursor = db.execute("""
+            INSERT OR IGNORE INTO achievements (player_id, achievement_id, unlocked_at)
+            VALUES (?, ?, ?)
+        """, (achievement.player_id, achievement.achievement_id, now))
+        db.commit()
+        if cursor.lastrowid:
+            achievement.id = cursor.lastrowid
+            achievement.unlocked_at = now
+            logger.info(f"Unlocked achievement: {achievement.achievement_id} for player {achievement.player_id}")
+        return achievement
+    
+    @staticmethod
+    def get_by_player(player_id: int) -> List[Achievement]:
+        """Get all achievements for a player."""
+        db = get_db()
+        cursor = db.execute("""
+            SELECT * FROM achievements WHERE player_id = ? ORDER BY unlocked_at DESC
+        """, (player_id,))
+        result = []
+        for row in cursor.fetchall():
+            result.append(Achievement(
+                id=row["id"],
+                player_id=row["player_id"],
+                achievement_id=row["achievement_id"],
+                unlocked_at=row["unlocked_at"]
+            ))
+        return result
+    
+    @staticmethod
+    def has_achievement(player_id: int, achievement_id: str) -> bool:
+        """Check if player has unlocked a specific achievement."""
+        db = get_db()
+        cursor = db.execute("""
+            SELECT COUNT(*) as count FROM achievements
+            WHERE player_id = ? AND achievement_id = ?
+        """, (player_id, achievement_id))
+        row = cursor.fetchone()
+        return (row["count"] if row else 0) > 0
+
+class PlayerStatsRepository:
+    """Repository for tracking player statistics for achievements."""
+    
+    @staticmethod
+    def get_or_create(player_id: int) -> Dict:
+        """Get player stats or create if doesn't exist."""
+        db = get_db()
+        cursor = db.execute("SELECT * FROM player_stats WHERE player_id = ?", (player_id,))
+        row = cursor.fetchone()
+        if row:
+            return {
+                "player_id": row["player_id"],
+                "enemies_defeated": row["enemies_defeated"],
+                "bosses_defeated": row["bosses_defeated"],
+                "quests_completed": row["quests_completed"],
+                "issues_completed": row["issues_completed"],
+                "prs_completed": row["prs_completed"],
+                "rooms_explored": row["rooms_explored"],
+                "items_collected": row["items_collected"],
+                "total_xp_earned": row["total_xp_earned"],
+                "perfect_victories": row["perfect_victories"]
+            }
+        # Create new stats
+        db.execute("""
+            INSERT INTO player_stats (player_id) VALUES (?)
+        """, (player_id,))
+        db.commit()
+        return {
+            "player_id": player_id,
+            "enemies_defeated": 0,
+            "bosses_defeated": 0,
+            "quests_completed": 0,
+            "issues_completed": 0,
+            "prs_completed": 0,
+            "rooms_explored": 0,
+            "items_collected": 0,
+            "total_xp_earned": 0,
+            "perfect_victories": 0
+        }
+    
+    @staticmethod
+    def increment_stat(player_id: int, stat_name: str, amount: int = 1):
+        """Increment a player stat."""
+        db = get_db()
+        # Ensure stats exist
+        PlayerStatsRepository.get_or_create(player_id)
+        db.execute(f"""
+            UPDATE player_stats SET {stat_name} = {stat_name} + ?
+            WHERE player_id = ?
+        """, (amount, player_id))
+        db.commit()
+    
+    @staticmethod
+    def set_stat(player_id: int, stat_name: str, value: int):
+        """Set a player stat to a specific value."""
+        db = get_db()
+        # Ensure stats exist
+        PlayerStatsRepository.get_or_create(player_id)
+        db.execute(f"""
+            UPDATE player_stats SET {stat_name} = ?
+            WHERE player_id = ?
+        """, (value, player_id))
+        db.commit()
 

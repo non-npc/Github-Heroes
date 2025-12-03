@@ -45,6 +45,9 @@ class CombatDialog(QDialog):
         self.player = player
         self.enemy = enemy
         self.loot_quality = loot_quality
+        self.turn_count = 0
+        self.damage_taken = 0
+        self.starting_hp = player.hp
         
         # Calculate equipped item bonuses
         from data.repositories import ItemRepository
@@ -65,7 +68,7 @@ class CombatDialog(QDialog):
             defense=player.defense + self.equipped_bonuses["defense"],
             speed=player.speed + self.equipped_bonuses["speed"],
             luck=player.luck + self.equipped_bonuses["luck"],
-            github_handle=player.github_handle
+            player_class=player.player_class
         )
         
         # Store initial max HP for progress bars
@@ -283,7 +286,10 @@ class CombatDialog(QDialog):
     
     def execute_action(self, action: str):
         """Execute a combat action."""
+        old_hp = self.combat_player.hp
         message, continues, result = combat_turn(self.combat_player, self.enemy, action)
+        self.turn_count += 1
+        self.damage_taken += max(0, old_hp - self.combat_player.hp)
         
         # Get combat text speed setting
         db = get_db()
@@ -308,7 +314,35 @@ class CombatDialog(QDialog):
                 # Update base player HP from combat player (but keep equipped bonuses separate)
                 self.player.hp = max(1, self.combat_player.hp - self.equipped_bonuses["hp"])
                 old_level = self.player.level
-                loot, xp, leveled_up = handle_victory(self.player, self.enemy, self.loot_quality)
+                
+                # Build combat context for achievements
+                combat_context = {
+                    "turns": self.turn_count,
+                    "damage_taken": self.damage_taken,
+                    "final_hp": self.combat_player.hp,
+                    "total_hp": self.combat_player.hp + self.equipped_bonuses["hp"],
+                    "total_attack": self.combat_player.attack
+                }
+                
+                # Track perfect victory
+                if self.damage_taken == 0:
+                    from data.repositories import PlayerStatsRepository
+                    PlayerStatsRepository.increment_stat(self.player.id, "perfect_victories", 1)
+                
+                loot, xp, leveled_up, achievement_context = handle_victory(
+                    self.player, self.enemy, self.loot_quality, combat_context
+                )
+                
+                # Check achievements
+                from game.achievements import check_achievements
+                newly_unlocked = check_achievements(self.player, achievement_context)
+                if newly_unlocked:
+                    from game.achievements import ACHIEVEMENTS
+                    achievement_names = [ACHIEVEMENTS[ach_id]["name"] for ach_id in newly_unlocked if ach_id in ACHIEVEMENTS]
+                    if achievement_names:
+                        ach_msg = "🏆 Achievement Unlocked!\n\n" + "\n".join(f"• {name}" for name in achievement_names)
+                        QMessageBox.information(self, "Achievement Unlocked!", ach_msg)
+                
                 PlayerRepository.update(self.player)
                 
                 result_msg = f"Victory! You gained {xp} XP!"

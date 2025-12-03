@@ -2,9 +2,9 @@
 Game rules, combat system, loot generation, XP, and leveling.
 """
 import random
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, List
 from data.models import Player, Enemy, Item
-from data.repositories import PlayerRepository, ItemRepository
+from data.repositories import PlayerRepository, ItemRepository, PlayerStatsRepository
 from core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -214,16 +214,24 @@ def apply_item_stats(player: Player, item: Item):
         if hasattr(player, stat):
             setattr(player, stat, getattr(player, stat) + bonus)
 
-def handle_victory(player: Player, enemy: Enemy, loot_quality: int = 1) -> Tuple[Item, int, bool]:
+def handle_victory(player: Player, enemy: Enemy, loot_quality: int = 1, combat_context: Optional[Dict] = None) -> Tuple[Item, int, bool, Dict]:
     """
     Handle player victory: award XP and generate loot.
-    Returns: (loot_item, xp_gained, leveled_up)
+    Returns: (loot_item, xp_gained, leveled_up, achievement_context)
     """
     xp = calculate_xp_reward(enemy)
     old_level = player.level
     leveled_up = award_xp(player, xp)
     
+    # Track stats for achievements
+    PlayerStatsRepository.increment_stat(player.id, "enemies_defeated", 1)
+    PlayerStatsRepository.increment_stat(player.id, "total_xp_earned", xp)
+    if enemy.is_boss:
+        PlayerStatsRepository.increment_stat(player.id, "bosses_defeated", 1)
+    
     loot = generate_loot(enemy, loot_quality)
+    achievement_context = {}
+    
     if loot:
         # Check inventory space before adding
         inventory_count = ItemRepository.get_inventory_count(player.id)
@@ -232,14 +240,24 @@ def handle_victory(player: Player, enemy: Enemy, loot_quality: int = 1) -> Tuple
         if inventory_count >= max_inventory:
             # Inventory full - don't add item
             logger.warning(f"Player {player.name} inventory full, cannot add loot")
-            return (None, xp, leveled_up)
+            return (None, xp, leveled_up, achievement_context)
         
         loot = ItemRepository.create(loot)
         ItemRepository.add_to_inventory(player.id, loot.id, 1)
+        PlayerStatsRepository.increment_stat(player.id, "items_collected", 1)
+        achievement_context["item_rarity"] = loot.rarity
+    
+    # Build achievement context
+    achievement_context.update({
+        "enemy_level": enemy.level,
+        "enemy": enemy
+    })
+    if combat_context:
+        achievement_context.update(combat_context)
     
     PlayerRepository.update(player)
     
-    return (loot, xp, leveled_up)
+    return (loot, xp, leveled_up, achievement_context)
 
 def handle_defeat(player: Player) -> Dict:
     """

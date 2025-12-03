@@ -59,6 +59,23 @@ class DungeonView(QWidget):
         self.explore_btn = QPushButton("Explore Room")
         self.explore_btn.clicked.connect(self.on_explore_room)
         self.explore_btn.setEnabled(False)
+        self.explore_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QPushButton:hover:enabled {
+                background-color: #45a049;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         details_layout.addWidget(self.explore_btn)
         
         details_group.setLayout(details_layout)
@@ -106,7 +123,7 @@ class DungeonView(QWidget):
                 room_item.setText(1, room.file_path.split('/')[-1])
                 room_item.setText(2, str(room.danger_level))
                 room_item.setText(3, str(room.loot_quality))
-                room_item.setText(4, "✓ Visited" if room.visited else "○ Unexplored")
+                room_item.setText(4, "✓ Explored" if room.visited else "○ Unexplored")
                 room_item.setData(0, Qt.ItemDataRole.UserRole, room.id)
     
     def on_room_clicked(self, item: QTreeWidgetItem, column: int):
@@ -129,12 +146,12 @@ class DungeonView(QWidget):
                 details += f"<b>Zone:</b> {room.zone_name}<br>"
                 details += f"<b>Danger Level:</b> {room.danger_level}<br>"
                 details += f"<b>Loot Quality:</b> {room.loot_quality}<br>"
-                details += f"<b>Status:</b> {'✓ Visited' if room.visited else '○ Unexplored'}<br>"
+                details += f"<b>Status:</b> {'✓ Explored' if room.visited else '○ Unexplored'}<br>"
                 
                 if not room.visited:
-                    details += "<br><i>This room contains enemies. Click 'Explore Room' to enter combat.</i>"
+                    details += "<br><i>This dungeon contains enemies. Click 'Explore Room' to enter combat.</i>"
                 else:
-                    details += "<br><i>This room has already been explored.</i>"
+                    details += "<br><i>This dungeon has already been explored.</i>"
                 
                 self.details_label.setText(details)
                 self.explore_btn.setEnabled(not room.visited)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 # Application info
 APP_NAME = "Github Heroes"
-APP_VERSION = "1.0.3"
+APP_VERSION = "1.0.4"
 
 def get_resource_path(relative_path):
     """
@@ -68,6 +68,52 @@ DEFAULT_PLAYER_STATS = {
 
 XP_PER_LEVEL = 100
 STAT_INCREASE_PER_LEVEL = 2
+
+# Player classes (mix of classic RPG and silly ones)
+PLAYER_CLASSES = [
+    # Classic RPG Classes
+    "Warrior",
+    "Paladin",
+    "Ranger",
+    "Rogue",
+    "Mage",
+    "Wizard",
+    "Cleric",
+    "Druid",
+    "Bard",
+    "Monk",
+    "Barbarian",
+    "Necromancer",
+    "Assassin",
+    "Knight",
+    "Sorcerer",
+    "Warlock",
+    "Shaman",
+    "Priest",
+    "Fighter",
+    "Thief",
+    # Silly/Fun Classes
+    "BBQ Pit Chef",
+    "Code Wizard",
+    "Bug Hunter",
+    "Stack Overflow Navigator",
+    "Coffee Addict",
+    "Keyboard Warrior",
+    "Git Master",
+    "Merge Conflict Resolver",
+    "Documentation Reader",
+    "Indentation Enforcer",
+    "Variable Namer",
+    "Comment Writer",
+    "Test Coverage Champion",
+    "Deploy Friday Survivor",
+    "Legacy Code Maintainer",
+    "API Key Finder",
+    "Error Message Decoder",
+    "Stack Trace Reader",
+    "Dependency Manager",
+    "Build Fixer"
+]
 
 # Keyword groups for README analysis
 KEYWORD_GROUPS = {

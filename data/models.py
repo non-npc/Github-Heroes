@@ -18,7 +18,7 @@ class Player:
     defense: int = 5
     speed: int = 8
     luck: int = 5
-    github_handle: Optional[str] = None
+    player_class: Optional[str] = None
     player_image_id: Optional[int] = None  # Image ID from 1-116
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -35,7 +35,7 @@ class Player:
             "defense": self.defense,
             "speed": self.speed,
             "luck": self.luck,
-            "github_handle": self.github_handle,
+            "player_class": self.player_class,
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }
@@ -201,4 +201,12 @@ class ReadmeFeatures:
     word_frequencies: Dict[str, int] = field(default_factory=dict)
     keyword_hits: Dict[str, int] = field(default_factory=dict)
     seed: int = 0
+
+@dataclass
+class Achievement:
+    """Achievement model."""
+    id: Optional[int] = None
+    player_id: int = 0
+    achievement_id: str = ""  # Unique identifier like "first_blood"
+    unlocked_at: Optional[str] = None
 
