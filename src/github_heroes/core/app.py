@@ -2,6 +2,8 @@
 Application initialization and main window setup.
 """
 
+import logging
+import click
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
@@ -32,11 +34,20 @@ def create_app():
     return app
 
 
-def run_app():
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
+@click.option(
+    "-l",
+    "--log",
+    default="info",
+    type=click.Choice(["critical", "error", "warn", "warning", "info", "debug"]),
+    help="Logging level",
+)
+def run_app(log: str):
     """
     Initialize and run the application.
     """
-    setup_logging()
+    loglevel = getattr(logging, log.upper())
+    setup_logging(loglevel)
     logger.info("Starting Github Heroes")
 
     app = create_app()

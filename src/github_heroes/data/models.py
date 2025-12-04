@@ -4,7 +4,18 @@ Data models for Github Heroes.
 
 import json
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Any, Dict, List, Optional
+
+
+class Stats(Enum):
+    """List of stats."""
+
+    hp = auto()
+    attack = auto()
+    defense = auto()
+    speed = auto()
+    luck = auto()
 
 
 @dataclass
@@ -46,6 +57,15 @@ class Player:
     def from_dict(cls, data: Dict[str, Any]) -> "Player":
         """Create from dictionary."""
         return cls(**data)
+
+    def stats(self) -> dict[Stats, int]:
+        return {
+            Stats.hp: self.hp,
+            Stats.attack: self.attack,
+            Stats.defense: self.defense,
+            Stats.speed: self.speed,
+            Stats.luck: self.luck,
+        }
 
 
 @dataclass
@@ -107,6 +127,14 @@ class Enemy:
         """Set tags."""
         self.tags_json = json.dumps(tags)
 
+    def stats(self) -> dict[Stats, int]:
+        return {
+            Stats.hp: self.hp,
+            Stats.attack: self.attack,
+            Stats.defense: self.defense,
+            Stats.speed: self.speed,
+        }
+
 
 @dataclass
 class DungeonRoom:
@@ -134,17 +162,51 @@ class Quest:
     status: str = "new"  # "new", "in_progress", "completed"
 
 
+class ItemRarity(Enum):
+    """List of rarity types."""
+
+    common = auto()
+    uncommon = auto()
+    rare = auto()
+    epic = auto()
+    legendary = auto()
+
+
+class ItemRarityXP(Enum):
+    """List of experience gain per item rarity."""
+
+    common = 5
+    uncommon = 10
+    rare = 25
+    epic = 50
+    legendary = 100
+
+
+class EquipmentTypes(Enum):
+    """List of Equipment types."""
+
+    weapon = auto()
+    shield = auto()
+    helmet = auto()
+    armor = auto()
+    ring = auto()
+    amulet = auto()
+    boots = auto()
+
+
 @dataclass
 class Item:
     """Item model."""
 
     id: Optional[int] = None
     name: str = ""
-    rarity: str = "common"  # "common", "uncommon", "rare", "epic", "legendary"
+    rarity: ItemRarity = (
+        ItemRarity.common
+    )  # "common", "uncommon", "rare", "epic", "legendary"
     stat_bonuses_json: str = "{}"
     description: Optional[str] = None
     equipment_type: Optional[str] = (
-        None  # "weapon", "shield", "armor", "ring", "amulet", "boots"
+        None  # "weapon", "shield", "helmet", "armor", "ring", "amulet", "boots"
     )
 
     def get_stat_bonuses(self) -> Dict[str, int]:
@@ -154,6 +216,35 @@ class Item:
     def set_stat_bonuses(self, bonuses: Dict[str, int]):
         """Set stat bonuses."""
         self.stat_bonuses_json = json.dumps(bonuses)
+
+    def stats(self) -> dict[Stats, int]:
+        stat_bonuses = self.get_stat_bonuses()
+        return {stat: stat_bonuses.get(stat.name, 0) for stat in Stats}
+
+
+class ItemTypes(Enum):
+    """List of Item types."""
+
+    Sword = auto()
+    Axe = auto()
+    Shield = auto()
+    Helmet = auto()
+    Armor = auto()
+    Ring = auto()
+    Amulet = auto()
+    Boots = auto()
+
+
+itemTypeToEquipment = {
+    ItemTypes.Sword: EquipmentTypes.weapon,
+    ItemTypes.Axe: EquipmentTypes.weapon,
+    ItemTypes.Shield: EquipmentTypes.shield,
+    ItemTypes.Helmet: EquipmentTypes.helmet,
+    ItemTypes.Armor: EquipmentTypes.armor,
+    ItemTypes.Ring: EquipmentTypes.ring,
+    ItemTypes.Amulet: EquipmentTypes.amulet,
+    ItemTypes.Boots: EquipmentTypes.boots,
+}
 
 
 # Helper data classes for parsing

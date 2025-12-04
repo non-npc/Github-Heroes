@@ -61,6 +61,13 @@ class GameState:
             return True
         return False
 
+    def clear_world(self, world_id: int) -> bool:
+        """Clear a world by ID."""
+        world = RepoWorldRepository.get_by_id(world_id)
+        if world and self.current_world == world:
+            self.current_world = None
+        return RepoWorldRepository.remove_by_id(world_id)
+
 
 # Global game state instance
 _game_state = GameState()

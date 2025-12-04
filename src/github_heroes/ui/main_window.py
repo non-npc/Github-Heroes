@@ -187,6 +187,7 @@ class MainWindow(QMainWindow):
         self.map_view.enter_dungeon.connect(self.on_enter_dungeon)
         self.map_view.open_quest_board.connect(self.on_open_quest_board)
         self.map_view.refresh_world.connect(self.on_refresh_world)
+        self.map_view.delete_world.connect(self.on_delete_dungeon)
         self.stacked_widget.addWidget(self.map_view)
 
         self.quest_board = QuestBoardView()
@@ -497,6 +498,13 @@ class MainWindow(QMainWindow):
                 self.dungeon_view.world_combo.setCurrentIndex(i)
                 break
 
+    def on_delete_dungeon(self, world_id: int):
+        """Handle world selection."""
+        game_state = get_game_state()
+        game_state.clear_world(world_id)
+        self.map_view.refresh_worlds()
+        self.map_view.on_world_unselected()
+
     def on_open_quest_board(self, world_id: int):
         """Handle open quest board."""
         self.stacked_widget.setCurrentIndex(1)  # Quest board
@@ -710,10 +718,7 @@ class MainWindow(QMainWindow):
         """Show about dialog."""
         about_box = QMessageBox(self)
         about_box.setWindowTitle("About Github Heroes")
-        about_box.setText(
-            f"Github Heroes v{APP_VERSION}\n\n"
-            "Game concept by non-npc"
-        )
+        about_box.setText(f"Github Heroes v{APP_VERSION}\n\nGame concept by non-npc")
 
         # Set the application icon
         import sys

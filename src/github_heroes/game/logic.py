@@ -6,7 +6,15 @@ import random
 from typing import Dict, Optional, Tuple
 
 from github_heroes.core.logging_utils import get_logger
-from github_heroes.data.models import Enemy, Item, Player
+from github_heroes.data.models import (
+    Enemy,
+    Item,
+    ItemRarity,
+    ItemTypes,
+    Player,
+    Stats,
+    itemTypeToEquipment,
+)
 from github_heroes.data.repositories import (
     ItemRepository,
     PlayerRepository,
@@ -14,6 +22,10 @@ from github_heroes.data.repositories import (
 )
 
 logger = get_logger(__name__)
+
+
+def bonus_as_string(bonuses: dict[str, str]) -> str:
+    return ", ".join(sorted([f"{k}: +{v}" for k, v in bonuses.items()]))
 
 
 def calculate_inventory_space(level: int) -> int:
@@ -158,15 +170,15 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
     rarity_roll = random.random()
 
     if loot_quality >= 6 or (enemy.is_boss and rarity_roll < 0.3):
-        rarity = "legendary"
+        rarity = ItemRarity.legendary
     elif loot_quality >= 4 or (enemy.is_boss and rarity_roll < 0.5):
-        rarity = "epic"
+        rarity = ItemRarity.epic
     elif loot_quality >= 3 or rarity_roll < 0.3:
-        rarity = "rare"
+        rarity = ItemRarity.rare
     elif loot_quality >= 2 or rarity_roll < 0.5:
-        rarity = "uncommon"
+        rarity = ItemRarity.uncommon
     else:
-        rarity = "common"
+        rarity = ItemRarity.common
 
     # Generate item name based on enemy tags
     tags = enemy.get_tags()
@@ -184,30 +196,16 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
         item_name_parts.append("Code")
 
     # Item type
-    item_types = ["Sword", "Shield", "Armor", "Ring", "Amulet", "Boots"]
-    item_type = random.choice(item_types)
-
-    item_name = f"{item_name_parts[0]} {item_type}"
-
-    # Map item type to equipment type (lowercase)
-    equipment_type_map = {
-        "Sword": "weapon",
-        "Shield": "shield",
-        "Armor": "armor",
-        "Ring": "ring",
-        "Amulet": "amulet",
-        "Boots": "boots",
-    }
-    equipment_type = equipment_type_map.get(item_type, None)
+    item_type = random.choice(list(ItemTypes))
+    item_name = f"{item_name_parts[0]} {item_type.name}"
 
     # Generate stat bonuses
     stat_bonuses = {}
     bonus_points = loot_quality * 2
 
-    stats = ["hp", "attack", "defense", "speed", "luck"]
     for _ in range(bonus_points):
-        stat = random.choice(stats)
-        stat_bonuses[stat] = stat_bonuses.get(stat, 0) + 1
+        stat = random.choice(list(Stats))
+        stat_bonuses[stat.name] = stat_bonuses.get(stat.name, 0) + 1
 
     # Create item
     item = Item(
@@ -215,7 +213,7 @@ def generate_loot(enemy: Enemy, loot_quality: int = 1) -> Optional[Item]:
         rarity=rarity,
         stat_bonuses_json="",
         description=f"A {rarity} item dropped by {enemy.name}",
-        equipment_type=equipment_type,
+        equipment_type=itemTypeToEquipment[item_type].name,
     )
     item.set_stat_bonuses(stat_bonuses)
 

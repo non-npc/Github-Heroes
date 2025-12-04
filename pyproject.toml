@@ -8,6 +8,7 @@ description = "An RPG 'Github Repo' game that turns GitHub repositories into dun
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
 dependencies = [
+    "click",
     "PyQt6>=6.9",
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",

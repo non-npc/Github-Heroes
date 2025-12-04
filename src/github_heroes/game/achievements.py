@@ -6,7 +6,7 @@ Tracks and unlocks achievements based on player actions.
 from typing import Dict, List, Optional
 
 from github_heroes.core.logging_utils import get_logger
-from github_heroes.data.models import Achievement, Player
+from github_heroes.data.models import Achievement, ItemRarity, Player
 from github_heroes.data.repositories import (
     AchievementRepository,
     ItemRepository,
@@ -510,22 +510,24 @@ def check_achievements(player: Player, context: Optional[Dict] = None) -> List[s
 
         # Rare/Epic/Legendary items
         if "item_rarity" in context:
-            rarity = context["item_rarity"]
-            if rarity in [
-                "rare",
-                "epic",
-                "legendary",
-            ] and not AchievementRepository.has_achievement(player.id, "rare_find"):
+            rarity: ItemRarity = context["item_rarity"]
+            if (
+                rarity.value >= ItemRarity.rare.value
+                and not AchievementRepository.has_achievement(player.id, "rare_find")
+            ):
                 unlock_achievement(player.id, "rare_find")
                 newly_unlocked.append("rare_find")
-            if rarity in [
-                "epic",
-                "legendary",
-            ] and not AchievementRepository.has_achievement(player.id, "epic_loot"):
+            if (
+                rarity.value >= ItemRarity.epic.value
+                and not AchievementRepository.has_achievement(player.id, "epic_loot")
+            ):
                 unlock_achievement(player.id, "epic_loot")
                 newly_unlocked.append("epic_loot")
-            if rarity == "legendary" and not AchievementRepository.has_achievement(
-                player.id, "legendary_hero"
+            if (
+                rarity.value >= ItemRarity.legendary.value
+                and not AchievementRepository.has_achievement(
+                    player.id, "legendary_hero"
+                )
             ):
                 unlock_achievement(player.id, "legendary_hero")
                 newly_unlocked.append("legendary_hero")

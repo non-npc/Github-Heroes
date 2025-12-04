@@ -19,13 +19,14 @@ from PyQt6.QtWidgets import (
 
 from github_heroes.core.config import get_resource_path
 from github_heroes.core.logging_utils import get_logger
+from github_heroes.data.models import EquipmentTypes, Stats
 from github_heroes.data.repositories import (
     ItemRepository,
     QuestRepository,
     RepoWorldRepository,
 )
 from github_heroes.game.achievements import get_player_achievements
-from github_heroes.game.logic import calculate_inventory_space
+from github_heroes.game.logic import bonus_as_string, calculate_inventory_space
 from github_heroes.game.state import get_game_state
 
 logger = get_logger(__name__)
@@ -79,19 +80,17 @@ class PlayerView(QWidget):
             }
         """)
 
-        self.hp_label = QLabel("HP: -")
-        self.attack_label = QLabel("Attack: -")
-        self.defense_label = QLabel("Defense: -")
-        self.speed_label = QLabel("Speed: -")
-        self.luck_label = QLabel("Luck: -")
+        self.stats_labels = {}
+        for stat in Stats:
+            name = stat.name.capitalize() if len(stat.name) > 2 else stat.name.upper()
+            self.stats_labels[stat] = QLabel(f"{name}: -")
 
         # Equipped items labels
-        self.weapon_label = QLabel("Weapon: None")
-        self.shield_label = QLabel("Shield: None")
-        self.armor_label = QLabel("Armor: None")
-        self.ring_label = QLabel("Ring: None")
-        self.amulet_label = QLabel("Amulet: None")
-        self.boots_label = QLabel("Boots: None")
+        self.equipped_labels = {}
+        for equipmentType in EquipmentTypes:
+            self.equipped_labels[equipmentType] = QLabel(
+                f"{equipmentType.name.capitalize()}: None"
+            )
 
         stats_left_layout.addWidget(self.name_label)
         stats_left_layout.addWidget(self.class_label)
@@ -99,19 +98,12 @@ class PlayerView(QWidget):
         stats_left_layout.addWidget(self.xp_label)
         stats_left_layout.addWidget(self.xp_bar)
         stats_left_layout.addWidget(QLabel("---"))
-        stats_left_layout.addWidget(self.hp_label)
-        stats_left_layout.addWidget(self.attack_label)
-        stats_left_layout.addWidget(self.defense_label)
-        stats_left_layout.addWidget(self.speed_label)
-        stats_left_layout.addWidget(self.luck_label)
+        for label_widget in self.stats_labels.values():
+            stats_left_layout.addWidget(label_widget)
         stats_left_layout.addWidget(QLabel("---"))
         stats_left_layout.addWidget(QLabel("<b>Equipped Items:</b>"))
-        stats_left_layout.addWidget(self.weapon_label)
-        stats_left_layout.addWidget(self.shield_label)
-        stats_left_layout.addWidget(self.armor_label)
-        stats_left_layout.addWidget(self.ring_label)
-        stats_left_layout.addWidget(self.amulet_label)
-        stats_left_layout.addWidget(self.boots_label)
+        for label_widget in self.equipped_labels.values():
+            stats_left_layout.addWidget(label_widget)
         stats_left_layout.addStretch()
 
         # Right column: Player image
@@ -225,12 +217,8 @@ class PlayerView(QWidget):
         if not player:
             self.name_label.setText("No player selected")
             self.class_label.setText("Class: -")
-            self.weapon_label.setText("Weapon: None")
-            self.shield_label.setText("Shield: None")
-            self.armor_label.setText("Armor: None")
-            self.ring_label.setText("Ring: None")
-            self.amulet_label.setText("Amulet: None")
-            self.boots_label.setText("Boots: None")
+            for equipment_type, qlabel in self.equipped_labels.items():
+                qlabel.setText(f"{equipment_type.name.capitalize()}: None")
             self.load_player_image(None)
             return
 
@@ -247,28 +235,19 @@ class PlayerView(QWidget):
         self.load_player_image(player)
 
         # Calculate stats with equipped items
-        base_hp = player.hp
-        base_attack = player.attack
-        base_defense = player.defense
-        base_speed = player.speed
-        base_luck = player.luck
+        base_stats = player.stats()
 
         inventory = ItemRepository.get_player_inventory(player.id)
-        equipped_bonuses = {"hp": 0, "attack": 0, "defense": 0, "speed": 0, "luck": 0}
+        equipped_bonuses = {stat: 0 for stat in Stats}
 
         # Track equipped items by slot
         equipped_items = {
-            "weapon": None,
-            "shield": None,
-            "armor": None,
-            "ring": None,
-            "amulet": None,
-            "boots": None,
+            equipment_type.name: None for equipment_type in EquipmentTypes
         }
 
         for item, quantity, equipped in inventory:
             if equipped:
-                bonuses = item.get_stat_bonuses()
+                bonuses = item.stats()
                 for stat, bonus in bonuses.items():
                     if stat in equipped_bonuses:
                         equipped_bonuses[stat] += bonus
@@ -278,45 +257,21 @@ class PlayerView(QWidget):
                     equipped_items[item.equipment_type] = item
 
         # Display stats with bonuses
-        total_hp = base_hp + equipped_bonuses["hp"]
-        total_attack = base_attack + equipped_bonuses["attack"]
-        total_defense = base_defense + equipped_bonuses["defense"]
-        total_speed = base_speed + equipped_bonuses["speed"]
-        total_luck = base_luck + equipped_bonuses["luck"]
+        total_stats = {
+            stat: base_stats[stat] + equipped_bonuses[stat] for stat in Stats
+        }
 
-        self.hp_label.setText(f"HP: {total_hp} ({base_hp} + {equipped_bonuses['hp']})")
-        self.attack_label.setText(
-            f"Attack: {total_attack} ({base_attack} + {equipped_bonuses['attack']})"
-        )
-        self.defense_label.setText(
-            f"Defense: {total_defense} ({base_defense} + {equipped_bonuses['defense']})"
-        )
-        self.speed_label.setText(
-            f"Speed: {total_speed} ({base_speed} + {equipped_bonuses['speed']})"
-        )
-        self.luck_label.setText(
-            f"Luck: {total_luck} ({base_luck} + {equipped_bonuses['luck']})"
-        )
+        for stat, qlabel in self.stats_labels.items():
+            name = stat.name.capitalize() if len(stat.name) > 2 else stat.name.upper()
+            label = f"{name}: {total_stats[stat]} ({base_stats[stat]} + {equipped_bonuses[stat]})"
+            qlabel.setText(label)
 
         # Update equipped items display
-        self.weapon_label.setText(
-            f"Weapon: {equipped_items['weapon'].name if equipped_items['weapon'] else 'None'}"
-        )
-        self.shield_label.setText(
-            f"Shield: {equipped_items['shield'].name if equipped_items['shield'] else 'None'}"
-        )
-        self.armor_label.setText(
-            f"Armor: {equipped_items['armor'].name if equipped_items['armor'] else 'None'}"
-        )
-        self.ring_label.setText(
-            f"Ring: {equipped_items['ring'].name if equipped_items['ring'] else 'None'}"
-        )
-        self.amulet_label.setText(
-            f"Amulet: {equipped_items['amulet'].name if equipped_items['amulet'] else 'None'}"
-        )
-        self.boots_label.setText(
-            f"Boots: {equipped_items['boots'].name if equipped_items['boots'] else 'None'}"
-        )
+        for equipment_type, qlabel in self.equipped_labels.items():
+            label = "None"
+            if equipped_items[equipment_type.name]:
+                label = f"{equipment_type.name.capitalize()}: {equipped_items[equipment_type.name].name} ({bonus_as_string(equipped_items[equipment_type.name].get_stat_bonuses())})"
+            qlabel.setText(label)
 
         # Update inventory space
         inventory_count = ItemRepository.get_inventory_count(player.id)
@@ -339,11 +294,11 @@ class PlayerView(QWidget):
             self.inventory_table.setItem(row, 0, QTableWidgetItem(name_text))
 
             # Rarity
-            self.inventory_table.setItem(row, 1, QTableWidgetItem(item.rarity))
+            self.inventory_table.setItem(row, 1, QTableWidgetItem(item.rarity.name))
 
             # Bonuses
             bonuses = item.get_stat_bonuses()
-            bonuses_str = ", ".join([f"{k}: +{v}" for k, v in bonuses.items()])
+            bonuses_str = bonus_as_string(bonuses)
             self.inventory_table.setItem(row, 2, QTableWidgetItem(bonuses_str))
 
             # Quantity

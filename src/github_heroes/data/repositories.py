@@ -12,6 +12,7 @@ from github_heroes.data.models import (
     DungeonRoom,
     Enemy,
     Item,
+    ItemRarity,
     Player,
     Quest,
     RepoWorld,
@@ -273,6 +274,46 @@ class RepoWorldRepository:
         )
         db.commit()
         return world
+
+    @staticmethod
+    def remove_by_id(world_id: int) -> bool:
+        """Remove repo world."""
+        db = get_db()
+        cursor = db.execute("SELECT * FROM repo_worlds WHERE id = ?", (world_id,))
+        row = cursor.fetchone()
+        if row:
+            # Remove completely
+            db.execute(
+                """
+                DELETE FROM repo_worlds
+                WHERE id = ?
+            """,
+                (world_id,),
+            )
+            db.commit()
+            return True
+        return False
+
+    @staticmethod
+    def remove_by_full_name(full_name: str) -> bool:
+        """Remove repo world."""
+        db = get_db()
+        cursor = db.execute(
+            "SELECT * FROM repo_worlds WHERE full_name = ?", (full_name,)
+        )
+        row = cursor.fetchone()
+        if row:
+            # Remove completely
+            db.execute(
+                """
+                DELETE FROM repo_worlds
+                WHERE full_name = ?
+            """,
+                (full_name,),
+            )
+            db.commit()
+            return True
+        return False
 
     @staticmethod
     def get_all() -> List[RepoWorld]:
@@ -553,7 +594,7 @@ class ItemRepository:
         """,
             (
                 item.name,
-                item.rarity,
+                item.rarity.name,
                 item.stat_bonuses_json,
                 item.description,
                 item.equipment_type,
@@ -578,7 +619,7 @@ class ItemRepository:
             return Item(
                 id=row["id"],
                 name=row["name"],
-                rarity=row["rarity"],
+                rarity=ItemRarity[row["rarity"]],
                 stat_bonuses_json=row["stat_bonuses_json"],
                 description=row["description"],
                 equipment_type=equipment_type,
@@ -624,7 +665,7 @@ class ItemRepository:
                     Item(
                         id=row["id"],
                         name=row["name"],
-                        rarity=row["rarity"],
+                        rarity=ItemRarity[row["rarity"]],
                         stat_bonuses_json=row["stat_bonuses_json"],
                         description=row["description"],
                         equipment_type=equipment_type,

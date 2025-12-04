@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 from github_heroes.core.config import get_resource_path
 from github_heroes.core.logging_utils import get_logger
 from github_heroes.data.database import get_db
-from github_heroes.data.models import Enemy, Player
+from github_heroes.data.models import Enemy, Player, Stats
 from github_heroes.data.repositories import PlayerRepository
 from github_heroes.game.logic import combat_turn, handle_defeat, handle_victory
 
@@ -63,17 +63,11 @@ class CombatDialog(QDialog):
         # Calculate equipped item bonuses
         from github_heroes.data.repositories import ItemRepository
 
-        self.equipped_bonuses = {
-            "hp": 0,
-            "attack": 0,
-            "defense": 0,
-            "speed": 0,
-            "luck": 0,
-        }
+        self.equipped_bonuses = {stat: 0 for stat in Stats}
         inventory = ItemRepository.get_player_inventory(player.id)
         for item, quantity, equipped in inventory:
             if equipped:
-                bonuses = item.get_stat_bonuses()
+                bonuses = item.stats()
                 for stat, bonus in bonuses.items():
                     if stat in self.equipped_bonuses:
                         self.equipped_bonuses[stat] += bonus
@@ -84,11 +78,11 @@ class CombatDialog(QDialog):
             name=player.name,
             level=player.level,
             xp=player.xp,
-            hp=player.hp + self.equipped_bonuses["hp"],
-            attack=player.attack + self.equipped_bonuses["attack"],
-            defense=player.defense + self.equipped_bonuses["defense"],
-            speed=player.speed + self.equipped_bonuses["speed"],
-            luck=player.luck + self.equipped_bonuses["luck"],
+            hp=player.hp + self.equipped_bonuses[Stats.hp],
+            attack=player.attack + self.equipped_bonuses[Stats.attack],
+            defense=player.defense + self.equipped_bonuses[Stats.defense],
+            speed=player.speed + self.equipped_bonuses[Stats.speed],
+            luck=player.luck + self.equipped_bonuses[Stats.luck],
             player_class=player.player_class,
         )
 
@@ -358,7 +352,7 @@ class CombatDialog(QDialog):
             if result == "victory":
                 # Update base player HP from combat player (but keep equipped bonuses separate)
                 self.player.hp = max(
-                    1, self.combat_player.hp - self.equipped_bonuses["hp"]
+                    1, self.combat_player.hp - self.equipped_bonuses[Stats.hp]
                 )
 
                 # Build combat context for achievements
@@ -366,7 +360,7 @@ class CombatDialog(QDialog):
                     "turns": self.turn_count,
                     "damage_taken": self.damage_taken,
                     "final_hp": self.combat_player.hp,
-                    "total_hp": self.combat_player.hp + self.equipped_bonuses["hp"],
+                    "total_hp": self.combat_player.hp + self.equipped_bonuses[Stats.hp],
                     "total_attack": self.combat_player.attack,
                 }
 
@@ -404,7 +398,7 @@ class CombatDialog(QDialog):
 
                 result_msg = f"Victory! You gained {xp} XP!"
                 if loot:
-                    result_msg += f"\nYou obtained: {loot.name} ({loot.rarity})"
+                    result_msg += f"\nYou obtained: {loot.name} ({loot.rarity.name})"
                 else:
                     # Check if inventory was full
                     from github_heroes.data.repositories import ItemRepository
@@ -440,7 +434,7 @@ class CombatDialog(QDialog):
             elif result == "defeat":
                 # Update base player HP from combat player
                 self.player.hp = max(
-                    1, self.combat_player.hp - self.equipped_bonuses["hp"]
+                    1, self.combat_player.hp - self.equipped_bonuses[Stats.hp]
                 )
                 penalties = handle_defeat(self.player)
                 PlayerRepository.update(self.player)

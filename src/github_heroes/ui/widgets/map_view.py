@@ -33,6 +33,7 @@ class MapView(QWidget):
     enter_dungeon = pyqtSignal(int)  # world_id
     open_quest_board = pyqtSignal(int)  # world_id
     refresh_world = pyqtSignal(int)  # world_id
+    delete_world = pyqtSignal(int)  # world_id
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -109,6 +110,28 @@ class MapView(QWidget):
         self.refresh_btn.setEnabled(False)
         buttons_layout.addWidget(self.refresh_btn)
 
+        self.delete_btn = QPushButton("Delete Dungeon")
+        self.delete_btn.clicked.connect(self.on_delete_dungeon)
+        self.delete_btn.setEnabled(False)
+        self.delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #AF4C4C;
+                color: white;
+                font-weight: bold;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QPushButton:hover:enabled {
+                background-color: #a04545;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        buttons_layout.addWidget(self.delete_btn)
+
         details_layout.addLayout(buttons_layout)
         details_group.setLayout(details_layout)
         layout.addWidget(details_group)
@@ -150,6 +173,16 @@ class MapView(QWidget):
             item = QListWidgetItem(item_text)
             item.setData(Qt.ItemDataRole.UserRole, world.id)
             self.worlds_list.addItem(item)
+
+    def on_world_unselected(self):
+        """Handle world unselection (after delete)."""
+        self.stats_label.setText("Select a world to view details")
+        self.content_label.setText("")
+        self.enemy_label.setText("")
+        self.enter_btn.setEnabled(False)
+        self.quest_btn.setEnabled(False)
+        self.refresh_btn.setEnabled(False)
+        self.delete_btn.setEnabled(False)
 
     def on_world_selected(self, item: QListWidgetItem):
         """Handle world selection."""
@@ -206,11 +239,17 @@ class MapView(QWidget):
         self.enter_btn.setEnabled(True)
         self.quest_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
+        self.delete_btn.setEnabled(True)
 
     def on_enter_dungeon(self):
         """Handle enter dungeon button."""
         if self.current_world_id:
             self.enter_dungeon.emit(self.current_world_id)
+
+    def on_delete_dungeon(self):
+        """Handle delete dungeon button."""
+        if self.current_world_id:
+            self.delete_world.emit(self.current_world_id)
 
     def on_open_quest_board(self):
         """Handle open quest board button."""
