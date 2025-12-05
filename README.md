@@ -73,6 +73,7 @@ github-heroes
 
 3. Web download
 ```cli
+at the command prompt type
 python main.py
 ```
 
