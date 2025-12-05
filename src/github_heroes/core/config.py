@@ -8,13 +8,13 @@ from pathlib import Path
 # Application info
 APP_NAME = "Github Heroes"
 
-# Try to get version from package metadata, fallback to "dev" if not installed
+# Try to get version from package metadata, fallback to "1.0.5" if not installed
 try:
     from importlib.metadata import version
     APP_VERSION = version("github-heroes")
 except Exception:
     # Package not installed (development mode) or version not available
-    APP_VERSION = "dev"
+    APP_VERSION = "1.0.5"
 
 
 def get_resource_path(relative_path):

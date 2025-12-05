@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QGroupBox,
+    QMessageBox,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from github_heroes.data.repositories import (
@@ -249,7 +250,16 @@ class MapView(QWidget):
     def on_delete_dungeon(self):
         """Handle delete dungeon button."""
         if self.current_world_id:
-            self.delete_world.emit(self.current_world_id)
+            # Show confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Delete Dungeon",
+                "This will remove the selected repo",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.delete_world.emit(self.current_world_id)
 
     def on_open_quest_board(self):
         """Handle open quest board button."""
@@ -259,4 +269,13 @@ class MapView(QWidget):
     def on_refresh_world(self):
         """Handle refresh world button."""
         if self.current_world_id:
-            self.refresh_world.emit(self.current_world_id)
+            # Show confirmation dialog
+            reply = QMessageBox.question(
+                self,
+                "Refresh Repository",
+                "This will reset dungeon progress for this repo",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.refresh_world.emit(self.current_world_id)
