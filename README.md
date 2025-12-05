@@ -1,4 +1,4 @@
-![Github Heroes Icon](https://raw.githubusercontent.com/non-npc/Github-Heroes/refs/heads/master/assets/appicons/GitHubRPG.png)
+![Github Heroes Icon](src/github_heroes/assets/appicons/GitHubRPG.png)
 # Github Heroes
 
 An RPG "Github Repo" game that turns GitHub repositories into dungeons, enemies, quests, and loot.
