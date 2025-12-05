@@ -35,6 +35,9 @@ Github Heroes is a single-player incremental RPG/exploration game built with Pyt
 - lxml
 - click
 
+On linux, it may be needed to install xcb-cursor0 or libxcb-cursor0 package, as well as fonts to handle Unicode characters.
+For instance on Debian the package fonts-recommanded will install font that will handle such characters.
+
 ## Installation
 
 1. With uv
